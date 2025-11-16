@@ -1,26 +1,26 @@
 ---
-title: "關於我"
+title: "About Me"
 date: 2025-11-16
 ---
 
-# 關於我
+# About Me
 
-嗨!我是 **I-Fan**,一名後端工程師。
+Hi! I'm **I-Fan**, a backend engineer.
 
-## 技術背景
+## Technical Background
 
-- 主要使用 **Java Spring Boot** 開發後端系統
-- 目前正在學習 **Go 語言**
-- 對系統架構和 API 設計有濃厚興趣
-- 
-## 這個部落格
+- Primarily working with **Java Spring Boot** for backend development
+- Currently learning **Go**
+- Passionate about system architecture and API design
 
-用來記錄技術學習筆記、開發心得,以及一些專案經驗分享。
+## This Blog
 
-## 興趣
+This blog documents my technical learning journey, development insights, and project experiences.
 
-除了寫程式,我喜歡聽各種類型的音樂 。
+## Interests
+
+Beyond coding, I enjoy listening to various genres of music.
 
 ---
 
-歡迎透過 [GitHub](https://github.com/ifan0927) 與我交流!
+Feel free to connect with me on [GitHub](https://github.com/ifan0927)!

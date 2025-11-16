@@ -15,24 +15,24 @@ theme = "hello-friend-ng"
 [menu]
   [[menu.main]]
     identifier = "posts"
-    name = "文章"
+    name = "posts"
     url = "/posts/"
     weight = 1
 
   [[menu.main]]
     identifier = "about"
-    name = "關於"
+    name = "about"
     url = "/about/"
     weight = 2
 
   [[menu.main]]
     identifier = "tags"
-    name = "標籤"
+    name = "tags"
     url = "/tags/"
     weight = 3
 
   [[menu.main]]
     identifier = "categories"
-    name = "分類"
+    name = "categories"
     url = "/categories/"
     weight = 4
