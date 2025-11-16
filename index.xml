@@ -5,13 +5,4 @@
 &lt;li&gt;清單項目 1&lt;/li&gt;
 &lt;li&gt;清單項目 2&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;&lt;strong&gt;粗體文字&lt;/strong&gt;和&lt;em&gt;斜體文字&lt;/em&gt;。&lt;/p&gt;</description></item><item><title>About</title><link>https://ifan0927.github.io/my-tech-blog/about/</link><pubDate>Wed, 09 Apr 2014 00:00:00 +0000</pubDate><guid>https://ifan0927.github.io/my-tech-blog/about/</guid><description>&lt;p&gt;Hugo is the &lt;strong&gt;world&amp;rsquo;s fastest framework&lt;/strong&gt; for building websites. It is written in Go.&lt;/p&gt;
-&lt;p&gt;It makes use of a variety of open-source projects, including:&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;a href="https://github.com/russross/blackfriday"&gt;https://github.com/russross/blackfriday&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href="https://github.com/alecthomas/chroma"&gt;https://github.com/alecthomas/chroma&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href="https://github.com/muesli/smartcrop"&gt;https://github.com/muesli/smartcrop&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href="https://github.com/spf13/cobra"&gt;https://github.com/spf13/cobra&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href="https://github.com/spf13/viper"&gt;https://github.com/spf13/viper&lt;/a&gt;&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;Learn more and contribute on [GitHub](&lt;a href="https://github.com/gohugoio"&gt;https://github.com/gohugoio&lt;/a&gt;&lt;/p&gt;</description></item></channel></rss>
+&lt;p&gt;&lt;strong&gt;粗體文字&lt;/strong&gt;和&lt;em&gt;斜體文字&lt;/em&gt;。&lt;/p&gt;</description></item><item><title/><link>https://ifan0927.github.io/my-tech-blog/about/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ifan0927.github.io/my-tech-blog/about/</guid><description/></item></channel></rss>
