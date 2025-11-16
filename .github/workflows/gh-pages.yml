@@ -5,7 +5,7 @@ on:
   push:
     # 每次推送到 main 分支時觸發部署
     branches:
-      - main
+      - master
   workflow_dispatch:
 
 jobs:
