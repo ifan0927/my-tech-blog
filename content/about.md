@@ -2,9 +2,6 @@
 title: "About Me"
 date: 2025-11-16
 ---
-
-# About Me
-
 Hi! I'm **I-Fan**, a backend engineer.
 
 ## Technical Background
