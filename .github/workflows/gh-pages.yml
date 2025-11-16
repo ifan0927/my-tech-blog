@@ -7,7 +7,7 @@ on:
     branches:
       - master
   workflow_dispatch:
-#  schedule:
+#  schedule :
 jobs:
   deploy:
     runs-on: ubuntu-latest
