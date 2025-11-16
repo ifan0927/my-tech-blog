@@ -5,4 +5,18 @@
 &lt;li&gt;清單項目 1&lt;/li&gt;
 &lt;li&gt;清單項目 2&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;&lt;strong&gt;粗體文字&lt;/strong&gt;和&lt;em&gt;斜體文字&lt;/em&gt;。&lt;/p&gt;</description></item><item><title/><link>https://ifan0927.github.io/my-tech-blog/about/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ifan0927.github.io/my-tech-blog/about/</guid><description/></item></channel></rss>
+&lt;p&gt;&lt;strong&gt;粗體文字&lt;/strong&gt;和&lt;em&gt;斜體文字&lt;/em&gt;。&lt;/p&gt;</description></item><item><title>關於我</title><link>https://ifan0927.github.io/my-tech-blog/about/</link><pubDate>Sun, 16 Nov 2025 00:00:00 +0000</pubDate><guid>https://ifan0927.github.io/my-tech-blog/about/</guid><description>&lt;h1 id="關於我"&gt;關於我&lt;/h1&gt;
+&lt;p&gt;嗨!我是 &lt;strong&gt;I-Fan&lt;/strong&gt;,一名後端工程師。&lt;/p&gt;
+&lt;h2 id="技術背景"&gt;技術背景&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;主要使用 &lt;strong&gt;Java Spring Boot&lt;/strong&gt; 開發後端系統&lt;/li&gt;
+&lt;li&gt;目前正在學習 &lt;strong&gt;Go 語言&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;對系統架構和 API 設計有濃厚興趣&lt;/li&gt;
+&lt;li&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id="這個部落格"&gt;這個部落格&lt;/h2&gt;
+&lt;p&gt;用來記錄技術學習筆記、開發心得,以及一些專案經驗分享。&lt;/p&gt;
+&lt;h2 id="興趣"&gt;興趣&lt;/h2&gt;
+&lt;p&gt;除了寫程式,我喜歡聽各種類型的音樂、健身。&lt;/p&gt;
+&lt;hr&gt;
+&lt;p&gt;歡迎透過 &lt;a href="https://github.com/ifan0927"&gt;GitHub&lt;/a&gt; 與我交流!&lt;/p&gt;</description></item></channel></rss>
