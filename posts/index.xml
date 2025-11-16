@@ -1,16 +1,1 @@
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Posts on I-Fan's Tech Blog</title><link>https://ifan0927.github.io/my-tech-blog/posts/</link><description>Recent content in Posts on I-Fan's Tech Blog</description><generator>Hugo -- gohugo.io</generator><language>zh-tw</language><lastBuildDate>Sun, 16 Nov 2025 20:00:00 +0800</lastBuildDate><atom:link href="https://ifan0927.github.io/my-tech-blog/posts/index.xml" rel="self" type="application/rss+xml"/><item><title>我的第一篇文章</title><link>https://ifan0927.github.io/my-tech-blog/posts/my-first-post/</link><pubDate>Sun, 16 Nov 2025 20:00:00 +0800</pubDate><guid>https://ifan0927.github.io/my-tech-blog/posts/my-first-post/</guid><description>&lt;h1 id="哈囉世界"&gt;哈囉,世界!&lt;/h1&gt;
-&lt;p&gt;這是我的第一篇部落格文章。&lt;/p&gt;
-&lt;h2 id="測試標題"&gt;測試標題&lt;/h2&gt;
-&lt;ul&gt;
-&lt;li&gt;清單項目 1&lt;/li&gt;
-&lt;li&gt;清單項目 2&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;&lt;strong&gt;粗體文字&lt;/strong&gt;和&lt;em&gt;斜體文字&lt;/em&gt;。&lt;/p&gt;</description><content type="html"><![CDATA[<h1 id="哈囉世界">哈囉,世界!</h1>
-<p>這是我的第一篇部落格文章。</p>
-<h2 id="測試標題">測試標題</h2>
-<ul>
-<li>清單項目 1</li>
-<li>清單項目 2</li>
-</ul>
-<p><strong>粗體文字</strong>和<em>斜體文字</em>。</p>
-]]></content></item></channel></rss>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Posts on 我的技術部落格</title><link>https://ifan0927.github.io/my-tech-blog/posts/</link><description>Recent content in Posts on 我的技術部落格</description><generator>Hugo -- gohugo.io</generator><language>zh-tw</language><lastBuildDate>Sun, 16 Nov 2025 20:42:15 +0800</lastBuildDate><atom:link href="https://ifan0927.github.io/my-tech-blog/posts/index.xml" rel="self" type="application/rss+xml"/></channel></rss>

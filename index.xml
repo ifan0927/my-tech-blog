@@ -1,22 +1,14 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>I-Fan's Tech Blog</title><link>https://ifan0927.github.io/my-tech-blog/</link><description>Recent content on I-Fan's Tech Blog</description><generator>Hugo</generator><language>zh-tw</language><lastBuildDate>Sun, 16 Nov 2025 20:00:00 +0800</lastBuildDate><atom:link href="https://ifan0927.github.io/my-tech-blog/index.xml" rel="self" type="application/rss+xml"/><item><title>我的第一篇文章</title><link>https://ifan0927.github.io/my-tech-blog/posts/my-first-post/</link><pubDate>Sun, 16 Nov 2025 20:00:00 +0800</pubDate><guid>https://ifan0927.github.io/my-tech-blog/posts/my-first-post/</guid><description>&lt;h1 id="哈囉世界"&gt;哈囉,世界!&lt;/h1&gt;
-&lt;p&gt;這是我的第一篇部落格文章。&lt;/p&gt;
-&lt;h2 id="測試標題"&gt;測試標題&lt;/h2&gt;
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>I-Fan's Tech Blog</title><link>https://ifan0927.github.io/my-tech-blog/</link><description>Recent content on I-Fan's Tech Blog</description><generator>Hugo</generator><language>zh-tw</language><lastBuildDate>Sun, 16 Nov 2025 00:00:00 +0000</lastBuildDate><atom:link href="https://ifan0927.github.io/my-tech-blog/index.xml" rel="self" type="application/rss+xml"/><item><title>About Me</title><link>https://ifan0927.github.io/my-tech-blog/about/</link><pubDate>Sun, 16 Nov 2025 00:00:00 +0000</pubDate><guid>https://ifan0927.github.io/my-tech-blog/about/</guid><description>&lt;h1 id="about-me"&gt;About Me&lt;/h1&gt;
+&lt;p&gt;Hi! I&amp;rsquo;m &lt;strong&gt;I-Fan&lt;/strong&gt;, a backend engineer.&lt;/p&gt;
+&lt;h2 id="technical-background"&gt;Technical Background&lt;/h2&gt;
 &lt;ul&gt;
-&lt;li&gt;清單項目 1&lt;/li&gt;
-&lt;li&gt;清單項目 2&lt;/li&gt;
+&lt;li&gt;Primarily working with &lt;strong&gt;Java Spring Boot&lt;/strong&gt; for backend development&lt;/li&gt;
+&lt;li&gt;Currently learning &lt;strong&gt;Go&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;Passionate about system architecture and API design&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;&lt;strong&gt;粗體文字&lt;/strong&gt;和&lt;em&gt;斜體文字&lt;/em&gt;。&lt;/p&gt;</description></item><item><title>關於我</title><link>https://ifan0927.github.io/my-tech-blog/about/</link><pubDate>Sun, 16 Nov 2025 00:00:00 +0000</pubDate><guid>https://ifan0927.github.io/my-tech-blog/about/</guid><description>&lt;h1 id="關於我"&gt;關於我&lt;/h1&gt;
-&lt;p&gt;嗨!我是 &lt;strong&gt;I-Fan&lt;/strong&gt;,一名後端工程師。&lt;/p&gt;
-&lt;h2 id="技術背景"&gt;技術背景&lt;/h2&gt;
-&lt;ul&gt;
-&lt;li&gt;主要使用 &lt;strong&gt;Java Spring Boot&lt;/strong&gt; 開發後端系統&lt;/li&gt;
-&lt;li&gt;目前正在學習 &lt;strong&gt;Go 語言&lt;/strong&gt;&lt;/li&gt;
-&lt;li&gt;對系統架構和 API 設計有濃厚興趣&lt;/li&gt;
-&lt;li&gt;&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2 id="這個部落格"&gt;這個部落格&lt;/h2&gt;
-&lt;p&gt;用來記錄技術學習筆記、開發心得,以及一些專案經驗分享。&lt;/p&gt;
-&lt;h2 id="興趣"&gt;興趣&lt;/h2&gt;
-&lt;p&gt;除了寫程式,我喜歡聽各種類型的音樂 。&lt;/p&gt;
+&lt;h2 id="this-blog"&gt;This Blog&lt;/h2&gt;
+&lt;p&gt;This blog documents my technical learning journey, development insights, and project experiences.&lt;/p&gt;
+&lt;h2 id="interests"&gt;Interests&lt;/h2&gt;
+&lt;p&gt;Beyond coding, I enjoy listening to various genres of music.&lt;/p&gt;
 &lt;hr&gt;
-&lt;p&gt;歡迎透過 &lt;a href="https://github.com/ifan0927"&gt;GitHub&lt;/a&gt; 與我交流!&lt;/p&gt;</description></item></channel></rss>
+&lt;p&gt;Feel free to connect with me on &lt;a href="https://github.com/ifan0927"&gt;GitHub&lt;/a&gt;!&lt;/p&gt;</description></item></channel></rss>
