@@ -1,5 +1,36 @@
-baseURL = 'https://ifan0927.github.io/my-tech-blog/'
+baseURL = "https://ifan0927.github.io/my-tech-blog/"
 languageCode = "zh-tw"
 title = "我的技術部落格"
 theme = "hello-friend-ng"
 
+[params]
+  dateform = "2006-01-02"
+  dateformShort = "01-02"
+  dateformNum = "2006-01-02"
+  dateformNumTime = "2006-01-02 15:04"
+
+# 主選單設定
+[menu]
+  [[menu.main]]
+    identifier = "posts"
+    name = "文章"
+    url = "/posts/"
+    weight = 1
+
+  [[menu.main]]
+    identifier = "about"
+    name = "關於"
+    url = "/about/"
+    weight = 2
+
+  [[menu.main]]
+    identifier = "tags"
+    name = "標籤"
+    url = "/tags/"
+    weight = 3
+
+  [[menu.main]]
+    identifier = "categories"
+    name = "分類"
+    url = "/categories/"
+    weight = 4
