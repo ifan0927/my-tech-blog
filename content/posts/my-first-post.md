@@ -1,8 +1,3 @@
-+++
-date = '2025-11-16T20:42:15+08:00'
-draft = true
-title = 'My First Post'
-+++
 ---
 title: "我的第一篇文章"
 date: 2025-11-16T20:00:00+08:00
