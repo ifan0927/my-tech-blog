@@ -1,13 +1,11 @@
-# .github/workflows/gh-pages.yml
 name: Deploy Hugo Site to GitHub Pages
 
 on:
   push:
-    # 每次推送到 main 分支時觸發部署
     branches:
       - master
   workflow_dispatch:
-#schedules:
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -15,13 +13,14 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          submodules: true  # 處理 Git Submodule 主題
-          fetch-depth: 0    # 獲取所有歷史紀錄
+          submodules: true
+          fetch-depth: 0
 
       - name: Setup Hugo
         uses: peaceiris/actions-hugo@v3
         with:
-          hugo-version: 'latest' # 使用最新版 Hugo
+          hugo-version: 'latest'
+          extended: true
 
       - name: Build Hugo Site
         run: hugo --minify
@@ -29,7 +28,5 @@ jobs:
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
-          # 此 token 用於讓 Action 寫入 gh-pages 分支
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          # 部署編譯後的 public/ 資料夾
           publish_dir: ./public
