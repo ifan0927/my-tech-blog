@@ -1,1 +1,125 @@
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Posts on I-Fan's Tech Blog</title><link>https://ifan0927.github.io/my-tech-blog/posts/</link><description>Recent content in Posts on I-Fan's Tech Blog</description><generator>Hugo -- gohugo.io</generator><language>zh-tw</language><lastBuildDate>Mon, 17 Nov 2025 23:40:50 +0800</lastBuildDate><atom:link href="https://ifan0927.github.io/my-tech-blog/posts/index.xml" rel="self" type="application/rss+xml"/></channel></rss>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Posts on I-Fan's Tech Blog</title><link>https://ifan0927.github.io/my-tech-blog/posts/</link><description>Recent content in Posts on I-Fan's Tech Blog</description><generator>Hugo -- gohugo.io</generator><language>zh-tw</language><lastBuildDate>Mon, 17 Nov 2025 23:40:50 +0800</lastBuildDate><atom:link href="https://ifan0927.github.io/my-tech-blog/posts/index.xml" rel="self" type="application/rss+xml"/><item><title>2025_11_17_Note</title><link>https://ifan0927.github.io/my-tech-blog/posts/2025_11_17_note/</link><pubDate>Mon, 17 Nov 2025 23:40:50 +0800</pubDate><guid>https://ifan0927.github.io/my-tech-blog/posts/2025_11_17_note/</guid><description>&lt;h1 id="optimizing-database-queries-and-understanding-hash-maps-in-go"&gt;Optimizing Database Queries and Understanding Hash Maps in Go&lt;/h1&gt;
+&lt;h2 id="introduction"&gt;Introduction&lt;/h2&gt;
+&lt;p&gt;Today&amp;rsquo;s session tackled two common yet crucial challenges in backend development: eliminating the N+1 query problem in a room management API and understanding the proper time complexity approach for the classic Two Sum problem. Both scenarios revealed important lessons about thinking beyond the obvious solution and leveraging the right data structures for optimal performance.&lt;/p&gt;
+&lt;h2 id="the-n1-query-problem-in-room-api"&gt;The N+1 Query Problem in Room API&lt;/h2&gt;
+&lt;h3 id="identifying-the-anti-pattern"&gt;Identifying the Anti-Pattern&lt;/h3&gt;
+&lt;p&gt;While building a room query page API that aggregates data from multiple models, I initially implemented what seemed like straightforward logic:&lt;/p&gt;</description><content type="html"><![CDATA[<h1 id="optimizing-database-queries-and-understanding-hash-maps-in-go">Optimizing Database Queries and Understanding Hash Maps in Go</h1>
+<h2 id="introduction">Introduction</h2>
+<p>Today&rsquo;s session tackled two common yet crucial challenges in backend development: eliminating the N+1 query problem in a room management API and understanding the proper time complexity approach for the classic Two Sum problem. Both scenarios revealed important lessons about thinking beyond the obvious solution and leveraging the right data structures for optimal performance.</p>
+<h2 id="the-n1-query-problem-in-room-api">The N+1 Query Problem in Room API</h2>
+<h3 id="identifying-the-anti-pattern">Identifying the Anti-Pattern</h3>
+<p>While building a room query page API that aggregates data from multiple models, I initially implemented what seemed like straightforward logic:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Anti-pattern: N+1 Query</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 1. Fetch all rooms (1 query)</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">rooms</span>, <span style="color:#a6e22e">_</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">roomRepo</span>.<span style="color:#a6e22e">FindAll</span>()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">for</span> <span style="color:#a6e22e">_</span>, <span style="color:#a6e22e">room</span> <span style="color:#f92672">:=</span> <span style="color:#66d9ef">range</span> <span style="color:#a6e22e">rooms</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 2. For each room, fetch its lease (N queries)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">lease</span>, <span style="color:#a6e22e">_</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">leaseRepo</span>.<span style="color:#a6e22e">FindByRoomIdAndLeaseIsActive</span>(<span style="color:#a6e22e">room</span>.<span style="color:#a6e22e">ID</span>)
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 3. For each lease, fetch tenant (another N queries)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">tenant</span>, <span style="color:#a6e22e">_</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">tenantRepo</span>.<span style="color:#a6e22e">FindByLeaseID</span>(<span style="color:#a6e22e">lease</span>.<span style="color:#a6e22e">ID</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>This approach executes <code>1 + N + N</code> queries, where N is the number of rooms. For 100 rooms, that&rsquo;s potentially 201 database calls – a significant performance bottleneck.</p>
+<h3 id="the-solution-eager-loading-with-preload">The Solution: Eager Loading with Preload</h3>
+<p>GORM&rsquo;s <code>Preload</code> feature enables eager loading, fetching all related data in a minimal number of queries:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// FindAllWithDetails uses Preload for eager loading</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Includes active leases, tenants, and billing cycles</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">r</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">RoomRepository</span>) <span style="color:#a6e22e">FindAllWithDetails</span>() ([]<span style="color:#a6e22e">models</span>.<span style="color:#a6e22e">Room</span>, <span style="color:#66d9ef">error</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">rooms</span> []<span style="color:#a6e22e">models</span>.<span style="color:#a6e22e">Room</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">r</span>.<span style="color:#a6e22e">db</span>.
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">Preload</span>(<span style="color:#e6db74">&#34;Leases&#34;</span>, <span style="color:#e6db74">&#34;is_active = ?&#34;</span>, <span style="color:#66d9ef">true</span>).
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">Preload</span>(<span style="color:#e6db74">&#34;Leases.LeaseTenant.Tenant&#34;</span>).
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">Preload</span>(<span style="color:#e6db74">&#34;Leases.BillingCycle&#34;</span>).
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">Find</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">rooms</span>).<span style="color:#a6e22e">Error</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>, <span style="color:#a6e22e">err</span>
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">rooms</span>, <span style="color:#66d9ef">nil</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p><strong>Key Preload Patterns Learned:</strong></p>
+<ul>
+<li><strong>Basic Loading</strong>: <code>Preload(&quot;Leases&quot;)</code> loads all related leases</li>
+<li><strong>Nested Loading</strong>: <code>Preload(&quot;Leases.LeaseTenant.Tenant&quot;)</code> traverses through relationships</li>
+<li><strong>Conditional Loading</strong>: <code>Preload(&quot;Leases&quot;, &quot;is_active = ?&quot;, true)</code> applies filters</li>
+</ul>
+<h3 id="proper-model-associations">Proper Model Associations</h3>
+<p>Critical to making Preload work is defining associations correctly in your models:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Room Model excerpt</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// GORM Preload Associations</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// These fields define what can be preloaded from the Room model</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// They don&#39;t create new database columns</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Leases represents all leases for a room</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// []Lease indicates a Room can have multiple Leases (Has Many relationship)</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// gorm:&#34;foreignKey:RoomID&#34; tells GORM that the RoomID field in Lease</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// is the foreign key linking to this Room</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// When using db.Preload(&#34;Leases&#34;), GORM queries the Lease table</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// for all records where RoomID matches this Room&#39;s ID</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">Leases</span> []<span style="color:#a6e22e">Lease</span> <span style="color:#e6db74">`gorm:&#34;foreignKey:RoomID&#34;`</span>
+</span></span></code></pre></div><h2 id="leetcode-two-sum--beyond-the-obvious">LeetCode: Two Sum – Beyond the Obvious</h2>
+<h3 id="the-false-two-pointer-solution">The False Two-Pointer Solution</h3>
+<p>My initial approach to Two Sum used what I thought was a two-pointer technique, but it was actually a disguised brute force solution with O(n²) complexity:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Inefficient: Still O(n²)</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">for</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">:=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> &lt; len(<span style="color:#a6e22e">nums</span>); <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">for</span> <span style="color:#a6e22e">j</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>; <span style="color:#a6e22e">j</span> &lt; len(<span style="color:#a6e22e">nums</span>); <span style="color:#a6e22e">j</span><span style="color:#f92672">++</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">nums</span>[<span style="color:#a6e22e">i</span>] <span style="color:#f92672">+</span> <span style="color:#a6e22e">nums</span>[<span style="color:#a6e22e">j</span>] <span style="color:#f92672">==</span> <span style="color:#a6e22e">target</span> {
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">return</span> []<span style="color:#66d9ef">int</span>{<span style="color:#a6e22e">i</span>, <span style="color:#a6e22e">j</span>}
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="the-hash-map-approach">The Hash Map Approach</h3>
+<p>The optimal solution leverages a hash map to achieve O(n) time complexity:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">twoSum</span>(<span style="color:#a6e22e">nums</span> []<span style="color:#66d9ef">int</span>, <span style="color:#a6e22e">target</span> <span style="color:#66d9ef">int</span>) []<span style="color:#66d9ef">int</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">m</span> <span style="color:#f92672">:=</span> make(<span style="color:#66d9ef">map</span>[<span style="color:#66d9ef">int</span>]<span style="color:#66d9ef">int</span>)
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">for</span> <span style="color:#a6e22e">i</span>, <span style="color:#a6e22e">num</span> <span style="color:#f92672">:=</span> <span style="color:#66d9ef">range</span> <span style="color:#a6e22e">nums</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">complement</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">target</span> <span style="color:#f92672">-</span> <span style="color:#a6e22e">num</span>
+</span></span><span style="display:flex;"><span>        
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// Check if complement exists and it&#39;s not the same element</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">j</span>, <span style="color:#a6e22e">ok</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">m</span>[<span style="color:#a6e22e">complement</span>]; <span style="color:#a6e22e">ok</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">j</span> <span style="color:#f92672">!=</span> <span style="color:#a6e22e">i</span> {
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">return</span> []<span style="color:#66d9ef">int</span>{<span style="color:#a6e22e">i</span>, <span style="color:#a6e22e">j</span>}
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>        
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">m</span>[<span style="color:#a6e22e">num</span>] = <span style="color:#a6e22e">i</span>
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="go-map-syntax-deep-dive">Go Map Syntax Deep Dive</h3>
+<p>This problem introduced several important Go map idioms:</p>
+<p><strong>1. Two-Value Query:</strong></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#a6e22e">j</span>, <span style="color:#a6e22e">ok</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">m</span>[<span style="color:#a6e22e">complement</span>]
+</span></span></code></pre></div><ul>
+<li><code>j</code>: the value (index) if key exists</li>
+<li><code>ok</code>: boolean indicating key existence</li>
+</ul>
+<p><strong>2. Existence Check:</strong></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#a6e22e">ok</span>  <span style="color:#75715e">// true if complement exists in map</span>
+</span></span></code></pre></div><p><strong>3. Element Uniqueness Validation:</strong></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#a6e22e">j</span> <span style="color:#f92672">!=</span> <span style="color:#a6e22e">i</span>  <span style="color:#75715e">// ensures we don&#39;t use the same element twice</span>
+</span></span></code></pre></div><p><strong>Combined in Conditional:</strong></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">if</span> <span style="color:#a6e22e">j</span>, <span style="color:#a6e22e">ok</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">m</span>[<span style="color:#a6e22e">complement</span>]; <span style="color:#a6e22e">ok</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">j</span> <span style="color:#f92672">!=</span> <span style="color:#a6e22e">i</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> []<span style="color:#66d9ef">int</span>{<span style="color:#a6e22e">i</span>, <span style="color:#a6e22e">j</span>}
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="key-takeaways">Key Takeaways</h2>
+<p><strong>Database Performance:</strong></p>
+<ul>
+<li>Always be vigilant about N+1 queries when working with ORMs</li>
+<li>GORM&rsquo;s Preload is powerful but requires proper model associations</li>
+<li>Understand the difference between lazy and eager loading strategies</li>
+</ul>
+<p><strong>Algorithm Optimization:</strong></p>
+<ul>
+<li>Don&rsquo;t confuse similar-looking patterns (two-pointer vs. brute force)</li>
+<li>Hash maps are often the key to reducing time complexity from O(n²) to O(n)</li>
+<li>Go&rsquo;s multi-value return pattern (<code>value, ok := map[key]</code>) is idiomatic for safe map access</li>
+</ul>
+<hr>
+<h2 id="conclusion">Conclusion</h2>
+<ol>
+<li>Finding N+1 queries problem by seeing the code is quite mess</li>
+<li>Maybe Preload is the good way for some cases, but it might pulling out too much unnecessary info , so lazy loading might work sometime</li>
+<li>Hashtable is the example of trading space for time</li>
+</ol>
+]]></content></item></channel></rss>
