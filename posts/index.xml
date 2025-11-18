@@ -1,4 +1,120 @@
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Posts on I-Fan's Tech Blog</title><link>https://ifan0927.github.io/my-tech-blog/posts/</link><description>Recent content in Posts on I-Fan's Tech Blog</description><generator>Hugo -- gohugo.io</generator><language>zh-tw</language><lastBuildDate>Mon, 17 Nov 2025 23:40:50 +0800</lastBuildDate><atom:link href="https://ifan0927.github.io/my-tech-blog/posts/index.xml" rel="self" type="application/rss+xml"/><item><title>2025_11_17_Note</title><link>https://ifan0927.github.io/my-tech-blog/posts/2025_11_17_note/</link><pubDate>Mon, 17 Nov 2025 23:40:50 +0800</pubDate><guid>https://ifan0927.github.io/my-tech-blog/posts/2025_11_17_note/</guid><description>&lt;h1 id="optimizing-database-queries-and-understanding-hash-maps-in-go"&gt;Optimizing Database Queries and Understanding Hash Maps in Go&lt;/h1&gt;
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Posts on I-Fan's Tech Blog</title><link>https://ifan0927.github.io/my-tech-blog/posts/</link><description>Recent content in Posts on I-Fan's Tech Blog</description><generator>Hugo -- gohugo.io</generator><language>zh-tw</language><lastBuildDate>Wed, 19 Nov 2025 00:06:34 +0800</lastBuildDate><atom:link href="https://ifan0927.github.io/my-tech-blog/posts/index.xml" rel="self" type="application/rss+xml"/><item><title>DTOs data mapping and Router in Go gin framework</title><link>https://ifan0927.github.io/my-tech-blog/posts/2025_11_18_note/</link><pubDate>Wed, 19 Nov 2025 00:06:34 +0800</pubDate><guid>https://ifan0927.github.io/my-tech-blog/posts/2025_11_18_note/</guid><description>&lt;h2 id="introduction"&gt;Introduction&lt;/h2&gt;
+&lt;p&gt;When building REST APIs with Go and Gin framework, two fundamental challenges often emerge: handling data transfer between layers with different nullability requirements, and extracting parameters from HTTP requests. This post walks through practical solutions for DTO mapping with pointer types and demonstrates various parameter extraction patterns in Gin routers.&lt;/p&gt;
+&lt;h2 id="understanding-pointer-semantics-in-dto-mapping"&gt;Understanding Pointer Semantics in DTO Mapping&lt;/h2&gt;
+&lt;h3 id="the-core-challenge"&gt;The Core Challenge&lt;/h3&gt;
+&lt;p&gt;When mapping between domain models and DTOs, mismatched pointer types create compilation errors. Consider this common scenario:&lt;/p&gt;</description><content type="html"><![CDATA[<h2 id="introduction">Introduction</h2>
+<p>When building REST APIs with Go and Gin framework, two fundamental challenges often emerge: handling data transfer between layers with different nullability requirements, and extracting parameters from HTTP requests. This post walks through practical solutions for DTO mapping with pointer types and demonstrates various parameter extraction patterns in Gin routers.</p>
+<h2 id="understanding-pointer-semantics-in-dto-mapping">Understanding Pointer Semantics in DTO Mapping</h2>
+<h3 id="the-core-challenge">The Core Challenge</h3>
+<p>When mapping between domain models and DTOs, mismatched pointer types create compilation errors. Consider this common scenario:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Domain Model (Source)</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Tenant</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Name</span>  <span style="color:#66d9ef">string</span>   <span style="color:#75715e">// Non-pointer</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Phone</span> <span style="color:#f92672">*</span><span style="color:#66d9ef">string</span>  <span style="color:#75715e">// Pointer (nullable)</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// DTO (Target)</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">TenantDto</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Name</span>  <span style="color:#f92672">*</span><span style="color:#66d9ef">string</span>  <span style="color:#75715e">// Pointer (nullable in API)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">Phone</span> <span style="color:#f92672">*</span><span style="color:#66d9ef">string</span>  <span style="color:#75715e">// Pointer (nullable in API)</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="three-mapping-scenarios">Three Mapping Scenarios</h3>
+<p><strong>Scenario 1: Non-pointer to Pointer</strong></p>
+<p>When the source field is a concrete value but the DTO expects a pointer:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// ❌ Direct assignment fails</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">dto</span>.<span style="color:#a6e22e">Name</span> = <span style="color:#a6e22e">tenant</span>.<span style="color:#a6e22e">Name</span>  <span style="color:#75715e">// Type mismatch</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// ✅ Take the address</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">dto</span>.<span style="color:#a6e22e">Name</span> = <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">tenant</span>.<span style="color:#a6e22e">Name</span>
+</span></span></code></pre></div><p><strong>Scenario 2: Pointer to Pointer</strong></p>
+<p>When both types use pointers, direct assignment works:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// ✅ Direct assignment succeeds</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">dto</span>.<span style="color:#a6e22e">Phone</span> = <span style="color:#a6e22e">tenant</span>.<span style="color:#a6e22e">Phone</span>
+</span></span></code></pre></div><p><strong>Scenario 3: Pointer to Non-pointer</strong></p>
+<p>When the source is nullable but the target isn&rsquo;t, dereference with nil-checking:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// ❌ Direct dereference fails</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">dto</span>.<span style="color:#a6e22e">Phone</span> = <span style="color:#a6e22e">tenant</span>.<span style="color:#a6e22e">Phone</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// ✅ Safely dereference</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">if</span> <span style="color:#a6e22e">tenant</span>.<span style="color:#a6e22e">Phone</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">dto</span>.<span style="color:#a6e22e">Phone</span> = <span style="color:#f92672">*</span><span style="color:#a6e22e">tenant</span>.<span style="color:#a6e22e">Phone</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="why-this-matters">Why This Matters</h3>
+<p>The pattern reveals an important principle: <strong>nullable fields (pointers) require explicit nil-handling</strong>. When converting from optional to required fields, you must decide how to handle absence (default value, error, or skip). When converting required to optional, taking the address is safe because the value always exists.</p>
+<h2 id="extracting-parameters-in-gin-routers">Extracting Parameters in Gin Routers</h2>
+<h3 id="path-parameters">Path Parameters</h3>
+<p>For RESTful resource identifiers embedded in URLs:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Route definition</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">rooms</span>.<span style="color:#a6e22e">GET</span>(<span style="color:#e6db74">&#34;/:id&#34;</span>, <span style="color:#a6e22e">roomHandler</span>.<span style="color:#a6e22e">GetRoomByID</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Handler implementation</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">h</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">RoomHandler</span>) <span style="color:#a6e22e">GetRoomByID</span>(<span style="color:#a6e22e">c</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">gin</span>.<span style="color:#a6e22e">Context</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">id</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">Param</span>(<span style="color:#e6db74">&#34;id&#34;</span>)  <span style="color:#75715e">// Extract path parameter</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// id contains &#34;123&#34; from GET /api/property/rooms/123</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="query-parameters">Query Parameters</h3>
+<p>For optional filters and modifiers:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">h</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">RoomHandler</span>) <span style="color:#a6e22e">GetRoomByID</span>(<span style="color:#a6e22e">c</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">gin</span>.<span style="color:#a6e22e">Context</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">include</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">Query</span>(<span style="color:#e6db74">&#34;include&#34;</span>)          <span style="color:#75715e">// Returns &#34;&#34; if not present</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">sort</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">DefaultQuery</span>(<span style="color:#e6db74">&#34;sort&#34;</span>, <span style="color:#e6db74">&#34;name&#34;</span>) <span style="color:#75715e">// Returns &#34;name&#34; if not present</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// From GET /api/property/rooms/123?include=furniture&amp;sort=price</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="multiple-path-parameters">Multiple Path Parameters</h3>
+<p>For nested resource hierarchies:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Route definition</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">estates</span>.<span style="color:#a6e22e">GET</span>(<span style="color:#e6db74">&#34;/:estateId/rooms/:roomId&#34;</span>, <span style="color:#a6e22e">handler</span>.<span style="color:#a6e22e">GetEstateRoom</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Handler implementation</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">h</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">Handler</span>) <span style="color:#a6e22e">GetEstateRoom</span>(<span style="color:#a6e22e">c</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">gin</span>.<span style="color:#a6e22e">Context</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">estateID</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">Param</span>(<span style="color:#e6db74">&#34;estateId&#34;</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">roomID</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">Param</span>(<span style="color:#e6db74">&#34;roomId&#34;</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// From GET /api/property/estates/456/rooms/789</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="type-conversion">Type Conversion</h3>
+<p>Path and query parameters arrive as strings. Use <code>strconv</code> for numeric conversions:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#f92672">import</span> <span style="color:#e6db74">&#34;strconv&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">id</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">Param</span>(<span style="color:#e6db74">&#34;id&#34;</span>)
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">roomID</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">strconv</span>.<span style="color:#a6e22e">Atoi</span>(<span style="color:#a6e22e">id</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">JSON</span>(<span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">StatusBadRequest</span>, <span style="color:#a6e22e">gin</span>.<span style="color:#a6e22e">H</span>{<span style="color:#e6db74">&#34;error&#34;</span>: <span style="color:#e6db74">&#34;Invalid room ID&#34;</span>})
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="error-handling-philosophy">Error Handling Philosophy</h2>
+<p>Go&rsquo;s explicit error handling extends to HTTP handlers. Always anticipate failure points:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">h</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">RoomHandler</span>) <span style="color:#a6e22e">GetRoomByID</span>(<span style="color:#a6e22e">c</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">gin</span>.<span style="color:#a6e22e">Context</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 1. Extract and validate input</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">id</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">Param</span>(<span style="color:#e6db74">&#34;id&#34;</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">roomID</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">strconv</span>.<span style="color:#a6e22e">Atoi</span>(<span style="color:#a6e22e">id</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">JSON</span>(<span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">StatusBadRequest</span>, <span style="color:#a6e22e">gin</span>.<span style="color:#a6e22e">H</span>{<span style="color:#e6db74">&#34;error&#34;</span>: <span style="color:#e6db74">&#34;Invalid ID format&#34;</span>})
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span>
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 2. Perform business logic</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">room</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">h</span>.<span style="color:#a6e22e">service</span>.<span style="color:#a6e22e">GetRoom</span>(<span style="color:#a6e22e">roomID</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">JSON</span>(<span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">StatusInternalServerError</span>, <span style="color:#a6e22e">gin</span>.<span style="color:#a6e22e">H</span>{<span style="color:#e6db74">&#34;error&#34;</span>: <span style="color:#a6e22e">err</span>.<span style="color:#a6e22e">Error</span>()})
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span>
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 3. Return success</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">JSON</span>(<span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">StatusOK</span>, <span style="color:#a6e22e">room</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>This defensive approach prevents unexpected panics and provides clear error messages to API consumers.</p>
+<h2 id="development-workflow-docker-vs-native">Development Workflow: Docker vs Native</h2>
+<h3 id="hot-reload-with-air">Hot Reload with Air</h3>
+<p>For containerized development, Air enables automatic recompilation:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-dockerfile" data-lang="dockerfile"><span style="display:flex;"><span><span style="color:#75715e"># Development Dockerfile</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#66d9ef">FROM</span> <span style="color:#e6db74">golang:1.21</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#66d9ef">WORKDIR</span> <span style="color:#e6db74">/app</span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#66d9ef">RUN</span> go install github.com/cosmtrek/air@latest<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#66d9ef">COPY</span> . .<span style="color:#960050;background-color:#1e0010">
+</span></span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010"></span><span style="color:#66d9ef">CMD</span> [<span style="color:#e6db74">&#34;air&#34;</span>]<span style="color:#960050;background-color:#1e0010">
+</span></span></span></code></pre></div><p>However, maintaining separate Dockerfiles for development and production adds complexity. For simple projects, native Go development may be more straightforward—reserve Docker for production deployments and when you need environment parity.</p>
+]]></content></item><item><title>2025_11_17_Note</title><link>https://ifan0927.github.io/my-tech-blog/posts/2025_11_17_note/</link><pubDate>Mon, 17 Nov 2025 23:40:50 +0800</pubDate><guid>https://ifan0927.github.io/my-tech-blog/posts/2025_11_17_note/</guid><description>&lt;h1 id="optimizing-database-queries-and-understanding-hash-maps-in-go"&gt;Optimizing Database Queries and Understanding Hash Maps in Go&lt;/h1&gt;
 &lt;h2 id="introduction"&gt;Introduction&lt;/h2&gt;
 &lt;p&gt;Today&amp;rsquo;s session tackled two common yet crucial challenges in backend development: eliminating the N+1 query problem in a room management API and understanding the proper time complexity approach for the classic Two Sum problem. Both scenarios revealed important lessons about thinking beyond the obvious solution and leveraging the right data structures for optimal performance.&lt;/p&gt;
 &lt;h2 id="the-n1-query-problem-in-room-api"&gt;The N+1 Query Problem in Room API&lt;/h2&gt;
