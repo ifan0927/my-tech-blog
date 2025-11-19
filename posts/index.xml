@@ -1,4 +1,264 @@
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Posts on I-Fan's Tech Blog</title><link>https://ifan0927.github.io/my-tech-blog/posts/</link><description>Recent content in Posts on I-Fan's Tech Blog</description><generator>Hugo -- gohugo.io</generator><language>zh-tw</language><lastBuildDate>Wed, 19 Nov 2025 00:06:34 +0800</lastBuildDate><atom:link href="https://ifan0927.github.io/my-tech-blog/posts/index.xml" rel="self" type="application/rss+xml"/><item><title>DTOs data mapping and Router in Go gin framework</title><link>https://ifan0927.github.io/my-tech-blog/posts/2025_11_18_note/</link><pubDate>Wed, 19 Nov 2025 00:06:34 +0800</pubDate><guid>https://ifan0927.github.io/my-tech-blog/posts/2025_11_18_note/</guid><description>&lt;h2 id="introduction"&gt;Introduction&lt;/h2&gt;
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Posts on I-Fan's Tech Blog</title><link>https://ifan0927.github.io/my-tech-blog/posts/</link><description>Recent content in Posts on I-Fan's Tech Blog</description><generator>Hugo -- gohugo.io</generator><language>zh-tw</language><lastBuildDate>Thu, 20 Nov 2025 00:27:38 +0800</lastBuildDate><atom:link href="https://ifan0927.github.io/my-tech-blog/posts/index.xml" rel="self" type="application/rss+xml"/><item><title>Simplifying User Permission Management: A Practical Database Design Approach</title><link>https://ifan0927.github.io/my-tech-blog/posts/2025_11_19_note/</link><pubDate>Thu, 20 Nov 2025 00:27:38 +0800</pubDate><guid>https://ifan0927.github.io/my-tech-blog/posts/2025_11_19_note/</guid><description>&lt;h2 id="introduction"&gt;Introduction&lt;/h2&gt;
+&lt;p&gt;When building a property management system, one of the first architectural decisions involves user permission management. While it&amp;rsquo;s tempting to implement Role-Based Access Control (RBAC) with its elaborate role hierarchies and permission matrices, sometimes a simpler approach proves more effective. This article explores how I designed a straightforward yet flexible permission system using MySQL and golang-migrate CLI, focusing on pragmatic solutions over theoretical completeness.&lt;/p&gt;
+&lt;h2 id="the-permission-design-philosophy"&gt;The Permission Design Philosophy&lt;/h2&gt;
+&lt;h3 id="why-group-based-over-role-based"&gt;Why Group-Based Over Role-Based?&lt;/h3&gt;
+&lt;p&gt;In early-stage applications, especially side projects or MVPs, over-engineered permission systems often create more problems than they solve:&lt;/p&gt;</description><content type="html"><![CDATA[<h2 id="introduction">Introduction</h2>
+<p>When building a property management system, one of the first architectural decisions involves user permission management. While it&rsquo;s tempting to implement Role-Based Access Control (RBAC) with its elaborate role hierarchies and permission matrices, sometimes a simpler approach proves more effective. This article explores how I designed a straightforward yet flexible permission system using MySQL and golang-migrate CLI, focusing on pragmatic solutions over theoretical completeness.</p>
+<h2 id="the-permission-design-philosophy">The Permission Design Philosophy</h2>
+<h3 id="why-group-based-over-role-based">Why Group-Based Over Role-Based?</h3>
+<p>In early-stage applications, especially side projects or MVPs, over-engineered permission systems often create more problems than they solve:</p>
+<ul>
+<li><strong>Maintenance Burden</strong>: Complex RBAC systems require constant updates as business logic evolves</li>
+<li><strong>Query Overhead</strong>: Multi-table joins for permission checks can impact performance</li>
+<li><strong>Development Friction</strong>: Team members spend more time configuring roles than building features</li>
+</ul>
+<p>Instead, I opted for a <strong>group-based permission model</strong> where permissions attach to user groups, and users inherit permissions through their group membership. This approach provides a middle ground between individual user permissions and complex role hierarchies.</p>
+<h3 id="core-design-decisions">Core Design Decisions</h3>
+<p>The permission system centers around three key entities:</p>
+<ol>
+<li><strong>User Groups</strong>: Organizational permission containers (admin, boss, manager, employee, intern)</li>
+<li><strong>Users</strong>: Account holders assigned to specific groups</li>
+<li><strong>Group Permissions</strong>: HTTP method + path combinations assigned to groups</li>
+</ol>
+<p>Here&rsquo;s the essential structure:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sql" data-lang="sql"><span style="display:flex;"><span><span style="color:#66d9ef">CREATE</span> <span style="color:#66d9ef">TABLE</span> user_groups (
+</span></span><span style="display:flex;"><span>    id INT <span style="color:#66d9ef">PRIMARY</span> <span style="color:#66d9ef">KEY</span> AUTO_INCREMENT,
+</span></span><span style="display:flex;"><span>    name VARCHAR(<span style="color:#ae81ff">50</span>) <span style="color:#66d9ef">UNIQUE</span> <span style="color:#66d9ef">NOT</span> <span style="color:#66d9ef">NULL</span>,  <span style="color:#75715e">-- admin, boss, manager, employee, intern
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    display_name VARCHAR(<span style="color:#ae81ff">100</span>) <span style="color:#66d9ef">NOT</span> <span style="color:#66d9ef">NULL</span>, <span style="color:#75715e">-- 系統管理員, 老闆, 主管...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    description TEXT,
+</span></span><span style="display:flex;"><span>    created_at <span style="color:#66d9ef">TIMESTAMP</span> <span style="color:#66d9ef">DEFAULT</span> <span style="color:#66d9ef">CURRENT_TIMESTAMP</span>
+</span></span><span style="display:flex;"><span>) ENGINE<span style="color:#f92672">=</span>InnoDB <span style="color:#66d9ef">DEFAULT</span> CHARSET<span style="color:#f92672">=</span>utf8mb4 <span style="color:#66d9ef">COLLATE</span><span style="color:#f92672">=</span>utf8mb4_unicode_ci;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">CREATE</span> <span style="color:#66d9ef">TABLE</span> users (
+</span></span><span style="display:flex;"><span>    id INT <span style="color:#66d9ef">PRIMARY</span> <span style="color:#66d9ef">KEY</span> AUTO_INCREMENT,
+</span></span><span style="display:flex;"><span>    email VARCHAR(<span style="color:#ae81ff">100</span>) <span style="color:#66d9ef">UNIQUE</span> <span style="color:#66d9ef">NOT</span> <span style="color:#66d9ef">NULL</span>,
+</span></span><span style="display:flex;"><span>    password_hash VARCHAR(<span style="color:#ae81ff">255</span>) <span style="color:#66d9ef">NOT</span> <span style="color:#66d9ef">NULL</span>,
+</span></span><span style="display:flex;"><span>    display_name VARCHAR(<span style="color:#ae81ff">100</span>) <span style="color:#66d9ef">NOT</span> <span style="color:#66d9ef">NULL</span>,
+</span></span><span style="display:flex;"><span>    is_active BOOLEAN <span style="color:#66d9ef">NOT</span> <span style="color:#66d9ef">NULL</span> <span style="color:#66d9ef">DEFAULT</span> <span style="color:#66d9ef">TRUE</span>,
+</span></span><span style="display:flex;"><span>    group_id INT <span style="color:#66d9ef">NOT</span> <span style="color:#66d9ef">NULL</span> <span style="color:#66d9ef">DEFAULT</span> <span style="color:#ae81ff">1</span>,
+</span></span><span style="display:flex;"><span>    last_login <span style="color:#66d9ef">TIMESTAMP</span> <span style="color:#66d9ef">DEFAULT</span> <span style="color:#66d9ef">NULL</span>,
+</span></span><span style="display:flex;"><span>    created_at <span style="color:#66d9ef">TIMESTAMP</span> <span style="color:#66d9ef">DEFAULT</span> <span style="color:#66d9ef">CURRENT_TIMESTAMP</span>,
+</span></span><span style="display:flex;"><span>    updated_at <span style="color:#66d9ef">TIMESTAMP</span> <span style="color:#66d9ef">DEFAULT</span> <span style="color:#66d9ef">CURRENT_TIMESTAMP</span> <span style="color:#66d9ef">ON</span> <span style="color:#66d9ef">UPDATE</span> <span style="color:#66d9ef">CURRENT_TIMESTAMP</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">FOREIGN</span> <span style="color:#66d9ef">KEY</span> (group_id) <span style="color:#66d9ef">REFERENCES</span> user_groups(id)
+</span></span><span style="display:flex;"><span>) ENGINE<span style="color:#f92672">=</span>InnoDB <span style="color:#66d9ef">DEFAULT</span> CHARSET<span style="color:#f92672">=</span>utf8mb4;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">CREATE</span> <span style="color:#66d9ef">TABLE</span> group_permissions (
+</span></span><span style="display:flex;"><span>    id INT <span style="color:#66d9ef">PRIMARY</span> <span style="color:#66d9ef">KEY</span> AUTO_INCREMENT,
+</span></span><span style="display:flex;"><span>    user_group_id INT <span style="color:#66d9ef">NOT</span> <span style="color:#66d9ef">NULL</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">method</span> ENUM(<span style="color:#e6db74">&#39;GET&#39;</span>, <span style="color:#e6db74">&#39;POST&#39;</span>, <span style="color:#e6db74">&#39;PUT&#39;</span>, <span style="color:#e6db74">&#39;DELETE&#39;</span>) <span style="color:#66d9ef">NOT</span> <span style="color:#66d9ef">NULL</span>,
+</span></span><span style="display:flex;"><span>    path VARCHAR(<span style="color:#ae81ff">200</span>) <span style="color:#66d9ef">NOT</span> <span style="color:#66d9ef">NULL</span>,  <span style="color:#75715e">-- /api/estates, /api/estates/:id
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    created_at <span style="color:#66d9ef">TIMESTAMP</span> <span style="color:#66d9ef">DEFAULT</span> <span style="color:#66d9ef">CURRENT_TIMESTAMP</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">FOREIGN</span> <span style="color:#66d9ef">KEY</span> (user_group_id) <span style="color:#66d9ef">REFERENCES</span> user_groups(id) <span style="color:#66d9ef">ON</span> <span style="color:#66d9ef">DELETE</span> <span style="color:#66d9ef">CASCADE</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">UNIQUE</span> <span style="color:#66d9ef">KEY</span> uk_group_method_path (user_group_id, <span style="color:#66d9ef">method</span>, path)
+</span></span><span style="display:flex;"><span>) ENGINE<span style="color:#f92672">=</span>InnoDB <span style="color:#66d9ef">DEFAULT</span> CHARSET<span style="color:#f92672">=</span>utf8mb4;
+</span></span></code></pre></div><p>The beauty lies in the <strong>API-first permission design</strong>—permissions are defined as HTTP method + path combinations, mapping directly to RESTful endpoints.</p>
+<h2 id="implementing-database-migrations-with-golang-migrate-cli">Implementing Database Migrations with golang-migrate CLI</h2>
+<h3 id="why-golang-migrate-cli">Why golang-migrate CLI?</h3>
+<p>Unlike ORM-based migrations, golang-migrate CLI provides:</p>
+<ul>
+<li><strong>Database Agnostic</strong>: Works with MySQL, PostgreSQL, SQLite, etc.</li>
+<li><strong>Version Control</strong>: Clear up/down migration pairs</li>
+<li><strong>Production Safety</strong>: Explicit control over schema changes</li>
+<li><strong>CI/CD Integration</strong>: Easy to integrate into deployment pipelines</li>
+</ul>
+<h3 id="setting-up-migrations">Setting Up Migrations</h3>
+<p>First, install golang-migrate:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># macOS</span>
+</span></span><span style="display:flex;"><span>brew install golang-migrate
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Linux</span>
+</span></span><span style="display:flex;"><span>curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz | tar xvz
+</span></span><span style="display:flex;"><span>sudo mv migrate /usr/local/bin/
+</span></span></code></pre></div><p>Create a migrations directory structure:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>mkdir -p migrations
+</span></span><span style="display:flex;"><span>cd migrations
+</span></span></code></pre></div><h3 id="creating-the-migration-file">Creating the Migration File</h3>
+<p>Generate a new migration:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>migrate create -ext sql -dir . -seq adding_user_groups_permissions
+</span></span></code></pre></div><p>This creates two files:</p>
+<ul>
+<li><code>000003_adding_user_groups_permissions.up.sql</code> (schema changes)</li>
+<li><code>000003_adding_user_groups_permissions.down.sql</code> (rollback)</li>
+</ul>
+<p>The <code>up</code> migration contains our complete schema as shown above. The naming convention <code>000003_</code> ensures proper execution order.</p>
+<h3 id="running-migrations">Running Migrations</h3>
+<p>Execute migrations against your MySQL database:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># Run all pending migrations</span>
+</span></span><span style="display:flex;"><span>migrate -path ./migrations <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>        -database <span style="color:#e6db74">&#34;mysql://user:password@tcp(localhost:3306)/property_db&#34;</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>        up
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Run specific number of migrations</span>
+</span></span><span style="display:flex;"><span>migrate -path ./migrations <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>        -database <span style="color:#e6db74">&#34;mysql://user:password@tcp(localhost:3306)/property_db&#34;</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>        up <span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Check current version</span>
+</span></span><span style="display:flex;"><span>migrate -path ./migrations <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>        -database <span style="color:#e6db74">&#34;mysql://user:password@tcp(localhost:3306)/property_db&#34;</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>        version
+</span></span></code></pre></div><h3 id="rollback-strategy">Rollback Strategy</h3>
+<p>If something goes wrong, rollback is straightforward:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># Rollback last migration</span>
+</span></span><span style="display:flex;"><span>migrate -path ./migrations <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>        -database <span style="color:#e6db74">&#34;mysql://user:password@tcp(localhost:3306)/property_db&#34;</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>        down <span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Rollback all migrations</span>
+</span></span><span style="display:flex;"><span>migrate -path ./migrations <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>        -database <span style="color:#e6db74">&#34;mysql://user:password@tcp(localhost:3306)/property_db&#34;</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>        down
+</span></span></code></pre></div><h2 id="data-migration-seeding-initial-groups-and-users">Data Migration: Seeding Initial Groups and Users</h2>
+<h3 id="the-python-migration-script">The Python Migration Script</h3>
+<p>After schema creation, I needed to seed initial data and migrate existing users. Here&rsquo;s the Python script I used:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#f92672">import</span> pymysql
+</span></span><span style="display:flex;"><span><span style="color:#f92672">from</span> datetime <span style="color:#f92672">import</span> datetime
+</span></span><span style="display:flex;"><span><span style="color:#f92672">import</span> bcrypt
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Database connection</span>
+</span></span><span style="display:flex;"><span>conn <span style="color:#f92672">=</span> pymysql<span style="color:#f92672">.</span>connect(
+</span></span><span style="display:flex;"><span>    host<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;localhost&#39;</span>,
+</span></span><span style="display:flex;"><span>    user<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;root&#39;</span>,
+</span></span><span style="display:flex;"><span>    password<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;your_password&#39;</span>,
+</span></span><span style="display:flex;"><span>    database<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;property_db&#39;</span>,
+</span></span><span style="display:flex;"><span>    charset<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;utf8mb4&#39;</span>
+</span></span><span style="display:flex;"><span>)
+</span></span><span style="display:flex;"><span>cursor <span style="color:#f92672">=</span> conn<span style="color:#f92672">.</span>cursor()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Step 1: Insert default user groups</span>
+</span></span><span style="display:flex;"><span>user_groups <span style="color:#f92672">=</span> [
+</span></span><span style="display:flex;"><span>    (<span style="color:#e6db74">&#39;admin&#39;</span>, <span style="color:#e6db74">&#39;系統管理員&#39;</span>, <span style="color:#e6db74">&#39;擁有所有系統權限&#39;</span>),
+</span></span><span style="display:flex;"><span>    (<span style="color:#e6db74">&#39;boss&#39;</span>, <span style="color:#e6db74">&#39;老闆&#39;</span>, <span style="color:#e6db74">&#39;查看所有資料與報表&#39;</span>),
+</span></span><span style="display:flex;"><span>    (<span style="color:#e6db74">&#39;manager&#39;</span>, <span style="color:#e6db74">&#39;主管&#39;</span>, <span style="color:#e6db74">&#39;管理物業與房間&#39;</span>),
+</span></span><span style="display:flex;"><span>    (<span style="color:#e6db74">&#39;employee&#39;</span>, <span style="color:#e6db74">&#39;員工&#39;</span>, <span style="color:#e6db74">&#39;處理日常業務&#39;</span>),
+</span></span><span style="display:flex;"><span>    (<span style="color:#e6db74">&#39;intern&#39;</span>, <span style="color:#e6db74">&#39;實習生&#39;</span>, <span style="color:#e6db74">&#39;有限的查看權限&#39;</span>)
+</span></span><span style="display:flex;"><span>]
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">for</span> name, display_name, description <span style="color:#f92672">in</span> user_groups:
+</span></span><span style="display:flex;"><span>    cursor<span style="color:#f92672">.</span>execute(<span style="color:#e6db74">&#34;&#34;&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        INSERT INTO user_groups (name, display_name, description)
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        VALUES (</span><span style="color:#e6db74">%s</span><span style="color:#e6db74">, </span><span style="color:#e6db74">%s</span><span style="color:#e6db74">, </span><span style="color:#e6db74">%s</span><span style="color:#e6db74">)
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        ON DUPLICATE KEY UPDATE display_name=VALUES(display_name)
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    &#34;&#34;&#34;</span>, (name, display_name, description))
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>conn<span style="color:#f92672">.</span>commit()
+</span></span><span style="display:flex;"><span>print(<span style="color:#e6db74">&#34;✓ User groups seeded successfully&#34;</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Step 2: Get group IDs for reference</span>
+</span></span><span style="display:flex;"><span>cursor<span style="color:#f92672">.</span>execute(<span style="color:#e6db74">&#34;SELECT id, name FROM user_groups&#34;</span>)
+</span></span><span style="display:flex;"><span>groups <span style="color:#f92672">=</span> {name: id <span style="color:#66d9ef">for</span> id, name <span style="color:#f92672">in</span> cursor<span style="color:#f92672">.</span>fetchall()}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Step 3: Migrate existing users from old system</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Assuming we have old user data to migrate</span>
+</span></span><span style="display:flex;"><span>old_users <span style="color:#f92672">=</span> [
+</span></span><span style="display:flex;"><span>    {<span style="color:#e6db74">&#39;email&#39;</span>: <span style="color:#e6db74">&#39;admin@company.com&#39;</span>, <span style="color:#e6db74">&#39;display_name&#39;</span>: <span style="color:#e6db74">&#39;系統管理員&#39;</span>, <span style="color:#e6db74">&#39;group&#39;</span>: <span style="color:#e6db74">&#39;admin&#39;</span>},
+</span></span><span style="display:flex;"><span>    {<span style="color:#e6db74">&#39;email&#39;</span>: <span style="color:#e6db74">&#39;boss@company.com&#39;</span>, <span style="color:#e6db74">&#39;display_name&#39;</span>: <span style="color:#e6db74">&#39;王老闆&#39;</span>, <span style="color:#e6db74">&#39;group&#39;</span>: <span style="color:#e6db74">&#39;boss&#39;</span>},
+</span></span><span style="display:flex;"><span>    {<span style="color:#e6db74">&#39;email&#39;</span>: <span style="color:#e6db74">&#39;manager1@company.com&#39;</span>, <span style="color:#e6db74">&#39;display_name&#39;</span>: <span style="color:#e6db74">&#39;李主管&#39;</span>, <span style="color:#e6db74">&#39;group&#39;</span>: <span style="color:#e6db74">&#39;manager&#39;</span>},
+</span></span><span style="display:flex;"><span>]
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">for</span> user <span style="color:#f92672">in</span> old_users:
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e"># Generate default password (should be changed on first login)</span>
+</span></span><span style="display:flex;"><span>    default_password <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;ChangeMe123!&#39;</span>
+</span></span><span style="display:flex;"><span>    password_hash <span style="color:#f92672">=</span> bcrypt<span style="color:#f92672">.</span>hashpw(default_password<span style="color:#f92672">.</span>encode(<span style="color:#e6db74">&#39;utf-8&#39;</span>), bcrypt<span style="color:#f92672">.</span>gensalt())
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    cursor<span style="color:#f92672">.</span>execute(<span style="color:#e6db74">&#34;&#34;&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        INSERT INTO users (email, password_hash, display_name, group_id, is_active)
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        VALUES (</span><span style="color:#e6db74">%s</span><span style="color:#e6db74">, </span><span style="color:#e6db74">%s</span><span style="color:#e6db74">, </span><span style="color:#e6db74">%s</span><span style="color:#e6db74">, </span><span style="color:#e6db74">%s</span><span style="color:#e6db74">, TRUE)
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        ON DUPLICATE KEY UPDATE 
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">            display_name=VALUES(display_name),
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">            group_id=VALUES(group_id)
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    &#34;&#34;&#34;</span>, (user[<span style="color:#e6db74">&#39;email&#39;</span>], password_hash<span style="color:#f92672">.</span>decode(<span style="color:#e6db74">&#39;utf-8&#39;</span>), user[<span style="color:#e6db74">&#39;display_name&#39;</span>], groups[user[<span style="color:#e6db74">&#39;group&#39;</span>]]))
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>conn<span style="color:#f92672">.</span>commit()
+</span></span><span style="display:flex;"><span>print(<span style="color:#e6db74">f</span><span style="color:#e6db74">&#34;✓ Migrated </span><span style="color:#e6db74">{</span>len(old_users)<span style="color:#e6db74">}</span><span style="color:#e6db74"> users successfully&#34;</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Step 4: Seed default permissions for admin group</span>
+</span></span><span style="display:flex;"><span>admin_permissions <span style="color:#f92672">=</span> [
+</span></span><span style="display:flex;"><span>    (<span style="color:#e6db74">&#39;GET&#39;</span>, <span style="color:#e6db74">&#39;/api/estates&#39;</span>),
+</span></span><span style="display:flex;"><span>    (<span style="color:#e6db74">&#39;POST&#39;</span>, <span style="color:#e6db74">&#39;/api/estates&#39;</span>),
+</span></span><span style="display:flex;"><span>    (<span style="color:#e6db74">&#39;PUT&#39;</span>, <span style="color:#e6db74">&#39;/api/estates/:id&#39;</span>),
+</span></span><span style="display:flex;"><span>    (<span style="color:#e6db74">&#39;DELETE&#39;</span>, <span style="color:#e6db74">&#39;/api/estates/:id&#39;</span>),
+</span></span><span style="display:flex;"><span>    (<span style="color:#e6db74">&#39;GET&#39;</span>, <span style="color:#e6db74">&#39;/api/rooms&#39;</span>),
+</span></span><span style="display:flex;"><span>    (<span style="color:#e6db74">&#39;POST&#39;</span>, <span style="color:#e6db74">&#39;/api/rooms&#39;</span>),
+</span></span><span style="display:flex;"><span>    (<span style="color:#e6db74">&#39;PUT&#39;</span>, <span style="color:#e6db74">&#39;/api/rooms/:id&#39;</span>),
+</span></span><span style="display:flex;"><span>    (<span style="color:#e6db74">&#39;DELETE&#39;</span>, <span style="color:#e6db74">&#39;/api/rooms/:id&#39;</span>),
+</span></span><span style="display:flex;"><span>]
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>admin_group_id <span style="color:#f92672">=</span> groups[<span style="color:#e6db74">&#39;admin&#39;</span>]
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">for</span> method, path <span style="color:#f92672">in</span> admin_permissions:
+</span></span><span style="display:flex;"><span>    cursor<span style="color:#f92672">.</span>execute(<span style="color:#e6db74">&#34;&#34;&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        INSERT INTO group_permissions (user_group_id, method, path)
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        VALUES (</span><span style="color:#e6db74">%s</span><span style="color:#e6db74">, </span><span style="color:#e6db74">%s</span><span style="color:#e6db74">, </span><span style="color:#e6db74">%s</span><span style="color:#e6db74">)
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        ON DUPLICATE KEY UPDATE method=VALUES(method)
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    &#34;&#34;&#34;</span>, (admin_group_id, method, path))
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>conn<span style="color:#f92672">.</span>commit()
+</span></span><span style="display:flex;"><span>print(<span style="color:#e6db74">f</span><span style="color:#e6db74">&#34;✓ Seeded </span><span style="color:#e6db74">{</span>len(admin_permissions)<span style="color:#e6db74">}</span><span style="color:#e6db74"> permissions for admin group&#34;</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>cursor<span style="color:#f92672">.</span>close()
+</span></span><span style="display:flex;"><span>conn<span style="color:#f92672">.</span>close()
+</span></span></code></pre></div><h3 id="key-migration-patterns">Key Migration Patterns</h3>
+<p><strong>1. Idempotent Inserts</strong></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>INSERT INTO user_groups (name, display_name, description)
+</span></span><span style="display:flex;"><span>VALUES (<span style="color:#f92672">%</span>s, <span style="color:#f92672">%</span>s, <span style="color:#f92672">%</span>s)
+</span></span><span style="display:flex;"><span>ON DUPLICATE KEY UPDATE display_name<span style="color:#f92672">=</span>VALUES(display_name)
+</span></span></code></pre></div><p>This pattern ensures the script can run multiple times safely without creating duplicates.</p>
+<p><strong>2. Password Hashing</strong></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>password_hash <span style="color:#f92672">=</span> bcrypt<span style="color:#f92672">.</span>hashpw(default_password<span style="color:#f92672">.</span>encode(<span style="color:#e6db74">&#39;utf-8&#39;</span>), bcrypt<span style="color:#f92672">.</span>gensalt())
+</span></span></code></pre></div><p>Always hash passwords before storage. bcrypt is industry-standard for password hashing with built-in salt generation.</p>
+<p><strong>3. Group ID Mapping</strong></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>cursor<span style="color:#f92672">.</span>execute(<span style="color:#e6db74">&#34;SELECT id, name FROM user_groups&#34;</span>)
+</span></span><span style="display:flex;"><span>groups <span style="color:#f92672">=</span> {name: id <span style="color:#66d9ef">for</span> id, name <span style="color:#f92672">in</span> cursor<span style="color:#f92672">.</span>fetchall()}
+</span></span></code></pre></div><p>Creating a dictionary mapping makes it easy to reference group IDs when inserting users.</p>
+<h2 id="why-this-design-works">Why This Design Works</h2>
+<h3 id="api-first-permission-model">API-First Permission Model</h3>
+<p>The <code>group_permissions</code> table directly maps to API endpoints:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sql" data-lang="sql"><span style="display:flex;"><span><span style="color:#66d9ef">method</span> ENUM(<span style="color:#e6db74">&#39;GET&#39;</span>, <span style="color:#e6db74">&#39;POST&#39;</span>, <span style="color:#e6db74">&#39;PUT&#39;</span>, <span style="color:#e6db74">&#39;DELETE&#39;</span>) <span style="color:#66d9ef">NOT</span> <span style="color:#66d9ef">NULL</span>,
+</span></span><span style="display:flex;"><span>path VARCHAR(<span style="color:#ae81ff">200</span>) <span style="color:#66d9ef">NOT</span> <span style="color:#66d9ef">NULL</span>  <span style="color:#75715e">-- /api/estates, /api/estates/:id
+</span></span></span></code></pre></div><p>This design enables <strong>middleware-based permission checks</strong> in your application:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Pseudo-code for permission middleware</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">CheckPermission</span>(<span style="color:#a6e22e">method</span>, <span style="color:#a6e22e">path</span> <span style="color:#66d9ef">string</span>, <span style="color:#a6e22e">userGroupID</span> <span style="color:#66d9ef">int</span>) <span style="color:#66d9ef">bool</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">count</span> <span style="color:#66d9ef">int</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">db</span>.<span style="color:#a6e22e">QueryRow</span>(<span style="color:#e6db74">`
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        SELECT COUNT(*) FROM group_permissions 
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">        WHERE user_group_id = ? AND method = ? AND path = ?
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    `</span>, <span style="color:#a6e22e">userGroupID</span>, <span style="color:#a6e22e">method</span>, <span style="color:#a6e22e">path</span>).<span style="color:#a6e22e">Scan</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">count</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">count</span> &gt; <span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="performance-advantages">Performance Advantages</h3>
+<p>This design offers several performance benefits:</p>
+<ol>
+<li><strong>Single Join for Permission Checks</strong>: Verifying permissions requires joining only two tables (users → group_permissions)</li>
+<li><strong>Unique Constraint Optimization</strong>: <code>UNIQUE KEY uk_group_method_path</code> prevents duplicate permissions and creates an automatic index</li>
+<li><strong>Enum for HTTP Methods</strong>: Using ENUM instead of VARCHAR saves storage and improves query performance</li>
+</ol>
+<h3 id="database-level-integrity">Database-Level Integrity</h3>
+<p>Critical constraints enforced at the database level:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sql" data-lang="sql"><span style="display:flex;"><span><span style="color:#66d9ef">FOREIGN</span> <span style="color:#66d9ef">KEY</span> (group_id) <span style="color:#66d9ef">REFERENCES</span> user_groups(id)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">FOREIGN</span> <span style="color:#66d9ef">KEY</span> (user_group_id) <span style="color:#66d9ef">REFERENCES</span> user_groups(id) <span style="color:#66d9ef">ON</span> <span style="color:#66d9ef">DELETE</span> <span style="color:#66d9ef">CASCADE</span>
+</span></span></code></pre></div><p><strong>CASCADE deletion</strong> ensures when a group is deleted, all associated permissions are automatically removed, preventing orphaned records.</p>
+<h2 id="golang-migrate-best-practices">golang-migrate Best Practices</h2>
+<h3 id="migration-file-naming-convention">Migration File Naming Convention</h3>
+<pre tabindex="0"><code>000001_create_estates_table.up.sql
+000002_create_rooms_table.up.sql
+000003_adding_user_groups_permissions.up.sql
+</code></pre><p>Sequential numbering ensures proper execution order, which is critical when tables have foreign key dependencies.</p>
+<h3 id="always-create-paired-migrations">Always Create Paired Migrations</h3>
+<p>Every <code>up</code> migration should have a corresponding <code>down</code> migration:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sql" data-lang="sql"><span style="display:flex;"><span><span style="color:#75715e">-- 000003_adding_user_groups_permissions.down.sql
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">DROP</span> <span style="color:#66d9ef">TABLE</span> <span style="color:#66d9ef">IF</span> <span style="color:#66d9ef">EXISTS</span> group_permissions;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">DROP</span> <span style="color:#66d9ef">TABLE</span> <span style="color:#66d9ef">IF</span> <span style="color:#66d9ef">EXISTS</span> users;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">DROP</span> <span style="color:#66d9ef">TABLE</span> <span style="color:#66d9ef">IF</span> <span style="color:#66d9ef">EXISTS</span> user_groups;
+</span></span></code></pre></div><p>Note the <strong>reverse order</strong> when dropping tables to respect foreign key constraints.</p>
+<h3 id="version-control-integration">Version Control Integration</h3>
+<p>Add migrations to git:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>git add migrations/
+</span></span><span style="display:flex;"><span>git commit -m <span style="color:#e6db74">&#34;feat: add user groups and permissions schema&#34;</span>
+</span></span></code></pre></div><p>This provides a complete history of schema evolution.</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>This permission system demonstrates that effective software design often favors simplicity over complexity. By focusing on group-based permissions tied directly to API endpoints, and leveraging golang-migrate CLI for version-controlled schema management, we achieve a maintainable solution without sacrificing functionality.</p>
+<p>The combination of SQL migrations for schema control and Python scripts for data seeding provides clear separation between structure and content, making the system easier to understand and maintain.</p>
+]]></content></item><item><title>DTOs data mapping and Router in Go gin framework</title><link>https://ifan0927.github.io/my-tech-blog/posts/2025_11_18_note/</link><pubDate>Wed, 19 Nov 2025 00:06:34 +0800</pubDate><guid>https://ifan0927.github.io/my-tech-blog/posts/2025_11_18_note/</guid><description>&lt;h2 id="introduction"&gt;Introduction&lt;/h2&gt;
 &lt;p&gt;When building REST APIs with Go and Gin framework, two fundamental challenges often emerge: handling data transfer between layers with different nullability requirements, and extracting parameters from HTTP requests. This post walks through practical solutions for DTO mapping with pointer types and demonstrates various parameter extraction patterns in Gin routers.&lt;/p&gt;
 &lt;h2 id="understanding-pointer-semantics-in-dto-mapping"&gt;Understanding Pointer Semantics in DTO Mapping&lt;/h2&gt;
 &lt;h3 id="the-core-challenge"&gt;The Core Challenge&lt;/h3&gt;
