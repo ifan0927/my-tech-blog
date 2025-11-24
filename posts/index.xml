@@ -1,4 +1,178 @@
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Posts on I-Fan's Tech Blog</title><link>https://ifan0927.github.io/my-tech-blog/posts/</link><description>Recent content in Posts on I-Fan's Tech Blog</description><generator>Hugo -- gohugo.io</generator><language>zh-tw</language><lastBuildDate>Thu, 20 Nov 2025 00:27:38 +0800</lastBuildDate><atom:link href="https://ifan0927.github.io/my-tech-blog/posts/index.xml" rel="self" type="application/rss+xml"/><item><title>Simplifying User Permission Management: A Practical Database Design Approach</title><link>https://ifan0927.github.io/my-tech-blog/posts/2025_11_19_note/</link><pubDate>Thu, 20 Nov 2025 00:27:38 +0800</pubDate><guid>https://ifan0927.github.io/my-tech-blog/posts/2025_11_19_note/</guid><description>&lt;h2 id="introduction"&gt;Introduction&lt;/h2&gt;
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Posts on I-Fan's Tech Blog</title><link>https://ifan0927.github.io/my-tech-blog/posts/</link><description>Recent content in Posts on I-Fan's Tech Blog</description><generator>Hugo -- gohugo.io</generator><language>zh-tw</language><lastBuildDate>Mon, 24 Nov 2025 22:51:55 +0800</lastBuildDate><atom:link href="https://ifan0927.github.io/my-tech-blog/posts/index.xml" rel="self" type="application/rss+xml"/><item><title>Setting Up a Production-Ready Mac Mini M4 Development Environment</title><link>https://ifan0927.github.io/my-tech-blog/posts/2025_11_24_note/</link><pubDate>Mon, 24 Nov 2025 22:51:55 +0800</pubDate><guid>https://ifan0927.github.io/my-tech-blog/posts/2025_11_24_note/</guid><description>&lt;h2 id="introduction"&gt;Introduction&lt;/h2&gt;
+&lt;p&gt;When transitioning to a new development machine, especially one intended to serve as both a local workstation and a remote development server, the setup process requires careful planning. This article documents the complete configuration of a Mac mini M4 (24GB) as a full-featured development environment, focusing on remote accessibility, containerized services, and productivity automation through n8n.&lt;/p&gt;
+&lt;p&gt;The goal is clear: create a reliable, remotely accessible development hub that supports Go-based backend projects, database management, and workflow automation—all while maintaining clean separation between development tools and system configurations.&lt;/p&gt;</description><content type="html"><![CDATA[<h2 id="introduction">Introduction</h2>
+<p>When transitioning to a new development machine, especially one intended to serve as both a local workstation and a remote development server, the setup process requires careful planning. This article documents the complete configuration of a Mac mini M4 (24GB) as a full-featured development environment, focusing on remote accessibility, containerized services, and productivity automation through n8n.</p>
+<p>The goal is clear: create a reliable, remotely accessible development hub that supports Go-based backend projects, database management, and workflow automation—all while maintaining clean separation between development tools and system configurations.</p>
+<h2 id="core-setup-philosophy">Core Setup Philosophy</h2>
+<h3 id="hardware-foundation">Hardware Foundation</h3>
+<p>The Mac mini M4 with 24GB RAM provides sufficient resources for running multiple containerized services simultaneously. The ARM64 architecture (Apple Silicon) requires special attention when selecting Docker images and compiling dependencies, but offers excellent performance-per-watt for long-running services.</p>
+<h3 id="remote-access-strategy">Remote Access Strategy</h3>
+<p>Remote development access is established through:</p>
+<ul>
+<li><strong>Tailscale VPN</strong>: Provides secure, NAT-traversing connectivity without port forwarding</li>
+<li><strong>SSH server</strong>: Enabled through System Settings → General → Sharing → Remote Login</li>
+<li><strong>VS Code Remote SSH</strong>: Primary development interface when working remotely</li>
+</ul>
+<p>This combination eliminates the complexity of dynamic DNS or port forwarding while maintaining security through Tailscale&rsquo;s identity-aware networking.</p>
+<h2 id="essential-development-tools">Essential Development Tools</h2>
+<h3 id="package-management-and-cli-tools">Package Management and CLI Tools</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># Install Homebrew</span>
+</span></span><span style="display:flex;"><span>/bin/bash -c <span style="color:#e6db74">&#34;</span><span style="color:#66d9ef">$(</span>curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh<span style="color:#66d9ef">)</span><span style="color:#e6db74">&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Core development tools</span>
+</span></span><span style="display:flex;"><span>brew install git
+</span></span><span style="display:flex;"><span>brew install --cask visual-studio-code
+</span></span><span style="display:flex;"><span>brew install go
+</span></span><span style="display:flex;"><span>brew install docker
+</span></span><span style="display:flex;"><span>brew install --cask docker  <span style="color:#75715e"># Docker Desktop for Mac</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Database clients</span>
+</span></span><span style="display:flex;"><span>brew install mysql-client
+</span></span><span style="display:flex;"><span>brew install postgresql@14
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Productivity and utilities</span>
+</span></span><span style="display:flex;"><span>brew install tmux
+</span></span><span style="display:flex;"><span>brew install htop
+</span></span><span style="display:flex;"><span>brew install jq
+</span></span></code></pre></div><h3 id="database-configuration-mysql">Database Configuration: MySQL</h3>
+<p>For Go-based property management projects requiring MySQL:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># Install MySQL via Homebrew</span>
+</span></span><span style="display:flex;"><span>brew install mysql
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Start MySQL service</span>
+</span></span><span style="display:flex;"><span>brew services start mysql
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Secure installation</span>
+</span></span><span style="display:flex;"><span>mysql_secure_installation
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Create development database</span>
+</span></span><span style="display:flex;"><span>mysql -u root -p
+</span></span><span style="display:flex;"><span>CREATE DATABASE property_management_dev CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+</span></span><span style="display:flex;"><span>CREATE USER <span style="color:#e6db74">&#39;dev_user&#39;</span>@<span style="color:#e6db74">&#39;localhost&#39;</span> IDENTIFIED BY <span style="color:#e6db74">&#39;secure_password&#39;</span>;
+</span></span><span style="display:flex;"><span>GRANT ALL PRIVILEGES ON property_management_dev.* TO <span style="color:#e6db74">&#39;dev_user&#39;</span>@<span style="color:#e6db74">&#39;localhost&#39;</span>;
+</span></span><span style="display:flex;"><span>FLUSH PRIVILEGES;
+</span></span></code></pre></div><p><strong>Why Homebrew MySQL over Docker for development databases?</strong></p>
+<ul>
+<li>Native ARM64 performance without emulation overhead</li>
+<li>Persistent storage naturally handled by macOS filesystem</li>
+<li>Simpler connection strings for local development (<code>localhost:3306</code>)</li>
+<li>Automatic startup with <code>brew services</code></li>
+</ul>
+<h2 id="containerized-services-setup">Containerized Services Setup</h2>
+<h3 id="docker-desktop-configuration">Docker Desktop Configuration</h3>
+<p>Docker Desktop for Mac M4 requires specific configuration for optimal ARM64 support:</p>
+<ol>
+<li><strong>Settings → General</strong>: Enable &ldquo;Use Virtualization framework&rdquo;</li>
+<li><strong>Settings → Resources</strong>: Allocate 8GB RAM, 4 CPUs for container workloads</li>
+<li><strong>Settings → Docker Engine</strong>: Add experimental features if needed</li>
+</ol>
+<h3 id="n8n-workflow-automation">n8n Workflow Automation</h3>
+<p>n8n serves as the productivity automation hub, handling scheduled tasks, API integrations, and workflow orchestration.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#75715e"># docker-compose.yml for n8n</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">version</span>: <span style="color:#e6db74">&#39;3.8&#39;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">services</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">n8n</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">image</span>: <span style="color:#ae81ff">n8nio/n8n:latest</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">container_name</span>: <span style="color:#ae81ff">n8n</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">restart</span>: <span style="color:#ae81ff">unless-stopped</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">ports</span>:
+</span></span><span style="display:flex;"><span>      - <span style="color:#e6db74">&#34;5678:5678&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">environment</span>:
+</span></span><span style="display:flex;"><span>      - <span style="color:#ae81ff">N8N_BASIC_AUTH_ACTIVE=true</span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#ae81ff">N8N_BASIC_AUTH_USER=admin</span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#ae81ff">N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD}</span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#ae81ff">N8N_HOST=${N8N_HOST}</span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#ae81ff">N8N_PROTOCOL=https</span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#ae81ff">WEBHOOK_URL=https://${N8N_HOST}/</span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#ae81ff">GENERIC_TIMEZONE=Asia/Taipei</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">volumes</span>:
+</span></span><span style="display:flex;"><span>      - <span style="color:#ae81ff">n8n_data:/home/node/.n8n</span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#ae81ff">./workflows:/workflows</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">volumes</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">n8n_data</span>:
+</span></span></code></pre></div><p><strong>Deployment considerations:</strong></p>
+<ul>
+<li>Store <code>N8N_PASSWORD</code> in <code>.env</code> file (add to <code>.gitignore</code>)</li>
+<li>Use Tailscale MagicDNS for <code>N8N_HOST</code> if accessing remotely</li>
+<li>Mount <code>/workflows</code> directory for version-controlled workflow backups</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># Start n8n</span>
+</span></span><span style="display:flex;"><span>docker-compose up -d n8n
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># View logs</span>
+</span></span><span style="display:flex;"><span>docker-compose logs -f n8n
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Access at http://localhost:5678 (local) or https://mac-mini.tailnet-name.ts.net:5678 (remote)</span>
+</span></span></code></pre></div><h2 id="go-development-environment">Go Development Environment</h2>
+<h3 id="project-structure-setup">Project Structure Setup</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># Create workspace directory</span>
+</span></span><span style="display:flex;"><span>mkdir -p ~/workspace/go-projects
+</span></span><span style="display:flex;"><span>cd ~/workspace/go-projects
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Clone property management project</span>
+</span></span><span style="display:flex;"><span>git clone git@github.com:username/property-management-system.git
+</span></span><span style="display:flex;"><span>cd property-management-system
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Install Go dependencies</span>
+</span></span><span style="display:flex;"><span>go mod download
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Verify Go toolchain</span>
+</span></span><span style="display:flex;"><span>go version  <span style="color:#75715e"># Should show go1.21+ for ARM64</span>
+</span></span></code></pre></div><p>Remote SSH connection from external machine:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># From laptop</span>
+</span></span><span style="display:flex;"><span>ssh -i ~/.ssh/id_ed25519 username@mac-mini.tailnet-name.ts.net
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Or via VS Code Remote SSH extension</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Remote-SSH: Connect to Host... → mac-mini.tailnet-name.ts.net</span>
+</span></span></code></pre></div><h2 id="productivity-automation-with-n8n">Productivity Automation with n8n</h2>
+<h3 id="common-workflow-examples">Common Workflow Examples</h3>
+<p><strong>1. Database Backup Automation</strong></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#75715e">// n8n workflow: Daily MySQL backup
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// Trigger: Cron (daily 2 AM)
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// → Execute Command: mysqldump
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// → Upload to Cloud Storage (optional)
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Execute Command node
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">command</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">`mysqldump -u dev_user -p&#39;</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">$env</span>.<span style="color:#a6e22e">DB_PASSWORD</span><span style="color:#e6db74">}</span><span style="color:#e6db74">&#39; property_management_dev &gt; /backup/db_$(date +%Y%m%d).sql`</span>;
+</span></span></code></pre></div><p><strong>2. Git Commit Reminder</strong></p>
+<ul>
+<li><strong>Trigger</strong>: Cron (every workday 6 PM)</li>
+<li><strong>Check</strong>: Query Git for uncommitted changes</li>
+<li><strong>Notify</strong>: Send Telegram/Slack message if dirty workspace detected</li>
+</ul>
+<p><strong>3. Development Metrics Collection</strong></p>
+<ul>
+<li><strong>Trigger</strong>: Webhook from CI/CD pipeline</li>
+<li><strong>Process</strong>: Extract test coverage, build time</li>
+<li><strong>Store</strong>: Append to Google Sheets or local CSV</li>
+</ul>
+<h2 id="system-maintenance-considerations">System Maintenance Considerations</h2>
+<h3 id="automatic-updates-management">Automatic Updates Management</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># Disable automatic macOS updates for stability</span>
+</span></span><span style="display:flex;"><span>sudo defaults write /Library/Preferences/com.apple.SoftwareUpdate AutomaticCheckEnabled -bool false
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Manually check when ready</span>
+</span></span><span style="display:flex;"><span>softwareupdate --list
+</span></span><span style="display:flex;"><span>softwareupdate --install --all
+</span></span></code></pre></div><h3 id="monitoring-and-logging">Monitoring and Logging</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># System resource monitoring</span>
+</span></span><span style="display:flex;"><span>htop
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Docker container stats</span>
+</span></span><span style="display:flex;"><span>docker stats
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># n8n execution logs</span>
+</span></span><span style="display:flex;"><span>docker-compose logs -f n8n --tail<span style="color:#f92672">=</span><span style="color:#ae81ff">100</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># MySQL slow query log</span>
+</span></span><span style="display:flex;"><span>mysql -u root -p -e <span style="color:#e6db74">&#34;SET GLOBAL slow_query_log = &#39;ON&#39;;&#34;</span>
+</span></span><span style="display:flex;"><span>mysql -u root -p -e <span style="color:#e6db74">&#34;SET GLOBAL long_query_time = 2;&#34;</span>
+</span></span><span style="display:flex;"><span>tail -f /usr/local/var/mysql/<span style="color:#66d9ef">$(</span>hostname<span style="color:#66d9ef">)</span>-slow.log
+</span></span></code></pre></div><h2 id="conclusion">Conclusion</h2>
+<p>Today mainly setting up the remote development environment , mainly focusing on the database and containerized services.Also setting up the ssh connection between the mac mini and the laptop. Hopefully this will decrease the difficulty of remaining the difference between the mac mini and the laptop.</p>
+]]></content></item><item><title>Simplifying User Permission Management: A Practical Database Design Approach</title><link>https://ifan0927.github.io/my-tech-blog/posts/2025_11_19_note/</link><pubDate>Thu, 20 Nov 2025 00:27:38 +0800</pubDate><guid>https://ifan0927.github.io/my-tech-blog/posts/2025_11_19_note/</guid><description>&lt;h2 id="introduction"&gt;Introduction&lt;/h2&gt;
 &lt;p&gt;When building a property management system, one of the first architectural decisions involves user permission management. While it&amp;rsquo;s tempting to implement Role-Based Access Control (RBAC) with its elaborate role hierarchies and permission matrices, sometimes a simpler approach proves more effective. This article explores how I designed a straightforward yet flexible permission system using MySQL and golang-migrate CLI, focusing on pragmatic solutions over theoretical completeness.&lt;/p&gt;
 &lt;h2 id="the-permission-design-philosophy"&gt;The Permission Design Philosophy&lt;/h2&gt;
 &lt;h3 id="why-group-based-over-role-based"&gt;Why Group-Based Over Role-Based?&lt;/h3&gt;
