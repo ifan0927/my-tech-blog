@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Automation on I-Fan's Tech Blog</title><link>https://ifan0927.github.io/my-tech-blog/categories/automation/</link><description>Recent content in Automation on I-Fan's Tech Blog</description><generator>Hugo</generator><language>zh-tw</language><lastBuildDate>Tue, 25 Nov 2025 00:00:00 +0000</lastBuildDate><atom:link href="https://ifan0927.github.io/my-tech-blog/categories/automation/index.xml" rel="self" type="application/rss+xml"/><item><title>Building n8n Automation Workflow for Hugo Blog Content Generation</title><link>https://ifan0927.github.io/my-tech-blog/posts/2025-11-25_note/</link><pubDate>Tue, 25 Nov 2025 00:00:00 +0000</pubDate><guid>https://ifan0927.github.io/my-tech-blog/posts/2025-11-25_note/</guid><description>&lt;p&gt;Today&amp;rsquo;s focus was on establishing an automated n8n workflow to streamline the daily note generation process for Hugo blog posts. The goal was to eliminate manual steps in transforming raw development notes into polished blog content using AI assistance.&lt;/p&gt;
+&lt;h2 id="problem-statement"&gt;Problem Statement&lt;/h2&gt;
+&lt;p&gt;The current workflow involves several manual steps that create friction in the content creation process:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Daily notes require manual formatting and editing after AI processing&lt;/li&gt;
+&lt;li&gt;Hugo post creation involves repetitive file structure setup&lt;/li&gt;
+&lt;li&gt;GitHub deployment requires manual commits and pushes&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;The solution involves creating an n8n automation that takes raw daily notes, processes them through Claude AI, and automatically creates properly formatted Hugo posts with GitHub integration.&lt;/p&gt;</description></item></channel></rss>
