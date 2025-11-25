@@ -1,4 +1,94 @@
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Posts on I-Fan's Tech Blog</title><link>https://ifan0927.github.io/my-tech-blog/posts/</link><description>Recent content in Posts on I-Fan's Tech Blog</description><generator>Hugo -- gohugo.io</generator><language>zh-tw</language><lastBuildDate>Mon, 24 Nov 2025 22:51:55 +0800</lastBuildDate><atom:link href="https://ifan0927.github.io/my-tech-blog/posts/index.xml" rel="self" type="application/rss+xml"/><item><title>Setting Up a Production-Ready Mac Mini M4 Development Environment</title><link>https://ifan0927.github.io/my-tech-blog/posts/2025_11_24_note/</link><pubDate>Mon, 24 Nov 2025 22:51:55 +0800</pubDate><guid>https://ifan0927.github.io/my-tech-blog/posts/2025_11_24_note/</guid><description>&lt;h2 id="introduction"&gt;Introduction&lt;/h2&gt;
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Posts on I-Fan's Tech Blog</title><link>https://ifan0927.github.io/my-tech-blog/posts/</link><description>Recent content in Posts on I-Fan's Tech Blog</description><generator>Hugo -- gohugo.io</generator><language>zh-tw</language><lastBuildDate>Tue, 25 Nov 2025 00:00:00 +0000</lastBuildDate><atom:link href="https://ifan0927.github.io/my-tech-blog/posts/index.xml" rel="self" type="application/rss+xml"/><item><title>N8N Automation Workflow for Hugo Content Generation</title><link>https://ifan0927.github.io/my-tech-blog/posts/2025-11-25_note/</link><pubDate>Tue, 25 Nov 2025 00:00:00 +0000</pubDate><guid>https://ifan0927.github.io/my-tech-blog/posts/2025-11-25_note/</guid><description>&lt;p&gt;Today&amp;rsquo;s focus was on building an automated workflow using N8N to streamline the daily note generation process for Hugo static site. The goal was to eliminate manual steps in converting AI-processed development notes into published Hugo posts.&lt;/p&gt;
+&lt;h2 id="project-overview"&gt;Project Overview&lt;/h2&gt;
+&lt;p&gt;The main challenge was the repetitive manual process of taking daily development notes, processing them through AI (Claude), and then manually creating Hugo posts and pushing to GitHub. This workflow aimed to automate the entire pipeline from local note files to published content.&lt;/p&gt;</description><content type="html"><![CDATA[<p>Today&rsquo;s focus was on building an automated workflow using N8N to streamline the daily note generation process for Hugo static site. The goal was to eliminate manual steps in converting AI-processed development notes into published Hugo posts.</p>
+<h2 id="project-overview">Project Overview</h2>
+<p>The main challenge was the repetitive manual process of taking daily development notes, processing them through AI (Claude), and then manually creating Hugo posts and pushing to GitHub. This workflow aimed to automate the entire pipeline from local note files to published content.</p>
+<h2 id="docker-configuration">Docker Configuration</h2>
+<p>Set up N8N using Docker with volume mapping to access local note files:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">version</span>: <span style="color:#e6db74">&#39;3&#39;</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">services</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">n8n</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">image</span>: <span style="color:#ae81ff">n8nio/n8n</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">ports</span>:
+</span></span><span style="display:flex;"><span>      - <span style="color:#e6db74">&#34;5678:5678&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">volumes</span>:
+</span></span><span style="display:flex;"><span>      - <span style="color:#ae81ff">~/.n8n:/home/node/.n8n</span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#ae81ff">/Users/cheni-fan/n8n:/files</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">environment</span>:
+</span></span><span style="display:flex;"><span>      - <span style="color:#ae81ff">N8N_BASIC_AUTH_ACTIVE=true</span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#ae81ff">N8N_BASIC_AUTH_USER=admin</span>
+</span></span><span style="display:flex;"><span>      - <span style="color:#ae81ff">N8N_BASIC_AUTH_PASSWORD=password</span>
+</span></span></code></pre></div><p>The key aspect is the volume mapping (<code>/Users/cheni-fan/n8n:/files</code>) which allows N8N&rsquo;s read file node to access local development notes. A code node handles date-based file selection to grab the current day&rsquo;s notes.</p>
+<h2 id="n8n-workflow-architecture">N8N Workflow Architecture</h2>
+<p>The workflow consists of three main components:</p>
+<ol>
+<li><strong>File Reading</strong>: Read file node retrieves daily notes from mapped volume</li>
+<li><strong>AI Processing</strong>: Anthropic node sends content to Claude for refinement</li>
+<li><strong>Content Processing</strong>: Code node handles text formatting and metadata extraction</li>
+<li><strong>GitHub Integration</strong>: GitHub node handles file creation and commit</li>
+</ol>
+<h2 id="content-processing-logic">Content Processing Logic</h2>
+<p>The core text processing handles several formatting tasks:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-javascript" data-lang="javascript"><span style="display:flex;"><span><span style="color:#75715e">// Get input data
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">inputData</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">$input</span>.<span style="color:#a6e22e">item</span>.<span style="color:#a6e22e">json</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">content</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">inputData</span>.<span style="color:#a6e22e">content</span>[<span style="color:#ae81ff">0</span>].<span style="color:#a6e22e">text</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 1. Remove  tags
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">content</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">content</span>.<span style="color:#a6e22e">replace</span>(<span style="color:#e6db74">/&lt;\/?markdown_output&gt;/g</span>, <span style="color:#e6db74">&#39;&#39;</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 2. Convert 
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span> <span style="color:#a6e22e">strings</span> <span style="color:#a6e22e">to</span> <span style="color:#a6e22e">actual</span> <span style="color:#a6e22e">line</span> <span style="color:#a6e22e">breaks</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">content</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">content</span>.<span style="color:#a6e22e">replace</span>(<span style="color:#e6db74">/\
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">/g</span>, <span style="color:#e6db74">&#39;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">&#39;</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 3. Clean whitespace
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">content</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">content</span>.<span style="color:#a6e22e">trim</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 4. Extract metadata from frontmatter
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">dateMatch</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">content</span>.<span style="color:#a6e22e">match</span>(<span style="color:#e6db74">/date:\s*&#34;?(\d{4}-\d{2}-\d{2})/</span>);
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">titleMatch</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">content</span>.<span style="color:#a6e22e">match</span>(<span style="color:#e6db74">/title:\s*&#34;([^&#34;]+)&#34;/</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 5. Generate filename (slug)
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">let</span> <span style="color:#a6e22e">fileName</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;&#39;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">dateMatch</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">titleMatch</span>) {
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">date</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">dateMatch</span>[<span style="color:#ae81ff">1</span>];
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">fileName</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">`</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">date</span><span style="color:#e6db74">}</span><span style="color:#e6db74">_Note.md`</span>;
+</span></span><span style="display:flex;"><span>} <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">// Fallback: use timestamp
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">timestamp</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> Date().<span style="color:#a6e22e">toISOString</span>().<span style="color:#a6e22e">split</span>(<span style="color:#e6db74">&#39;T&#39;</span>)[<span style="color:#ae81ff">0</span>];
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">fileName</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">`</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">timestamp</span><span style="color:#e6db74">}</span><span style="color:#e6db74">-post.md`</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 6. Set file path
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">filePath</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">`content/posts/</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">fileName</span><span style="color:#e6db74">}</span><span style="color:#e6db74">`</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 7. Prepare commit message
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">commitMessage</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">titleMatch</span> 
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">?</span> <span style="color:#e6db74">`Add post: </span><span style="color:#e6db74">${</span><span style="color:#a6e22e">titleMatch</span>[<span style="color:#ae81ff">1</span>]<span style="color:#e6db74">}</span><span style="color:#e6db74">`</span> 
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">:</span> <span style="color:#e6db74">`Add new post: </span><span style="color:#e6db74">${</span><span style="color:#a6e22e">fileName</span><span style="color:#e6db74">}</span><span style="color:#e6db74">`</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 8. Output for GitHub node
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">return</span> {
+</span></span><span style="display:flex;"><span>  <span style="color:#a6e22e">json</span><span style="color:#f92672">:</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">fileContent</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">content</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">filePath</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">filePath</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">commitMessage</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">commitMessage</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">fileName</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">fileName</span>
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><h2 id="key-technical-features">Key Technical Features</h2>
+<ul>
+<li><strong>Dynamic file naming</strong>: Extracts date and title from frontmatter to generate consistent filenames</li>
+<li><strong>Text formatting</strong>: Handles markdown tag cleanup and proper line break conversion</li>
+<li><strong>Automated Git operations</strong>: Generates meaningful commit messages and pushes to repository</li>
+<li><strong>Error handling</strong>: Fallback filename generation if metadata extraction fails</li>
+</ul>
+<h2 id="results">Results</h2>
+<p>Successfully automated the complete pipeline from local development notes to published Hugo content, eliminating manual file creation, editing, and Git operations. The workflow now handles the entire process from AI content refinement through to GitHub deployment.</p>
+<h2 id="next-steps">Next Steps</h2>
+<p>Consider adding error handling for failed API calls and implementing notification mechanisms for workflow completion status.</p>
+]]></content></item><item><title>Setting Up a Production-Ready Mac Mini M4 Development Environment</title><link>https://ifan0927.github.io/my-tech-blog/posts/2025_11_24_note/</link><pubDate>Mon, 24 Nov 2025 22:51:55 +0800</pubDate><guid>https://ifan0927.github.io/my-tech-blog/posts/2025_11_24_note/</guid><description>&lt;h2 id="introduction"&gt;Introduction&lt;/h2&gt;
 &lt;p&gt;When transitioning to a new development machine, especially one intended to serve as both a local workstation and a remote development server, the setup process requires careful planning. This article documents the complete configuration of a Mac mini M4 (24GB) as a full-featured development environment, focusing on remote accessibility, containerized services, and productivity automation through n8n.&lt;/p&gt;
 &lt;p&gt;The goal is clear: create a reliable, remotely accessible development hub that supports Go-based backend projects, database management, and workflow automation—all while maintaining clean separation between development tools and system configurations.&lt;/p&gt;</description><content type="html"><![CDATA[<h2 id="introduction">Introduction</h2>
 <p>When transitioning to a new development machine, especially one intended to serve as both a local workstation and a remote development server, the setup process requires careful planning. This article documents the complete configuration of a Mac mini M4 (24GB) as a full-featured development environment, focusing on remote accessibility, containerized services, and productivity automation through n8n.</p>
