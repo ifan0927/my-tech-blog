@@ -771,4 +771,174 @@
 <li>Maybe Preload is the good way for some cases, but it might pulling out too much unnecessary info , so lazy loading might work sometime</li>
 <li>Hashtable is the example of trading space for time</li>
 </ol>
-]]></content></item></channel></rss>
+]]></content></item><item><title/><link>https://ifan0927.github.io/my-tech-blog/posts/2024-12-19_note/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://ifan0927.github.io/my-tech-blog/posts/2024-12-19_note/</guid><description>&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"&gt;&lt;code class="language-markdown" data-lang="markdown"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;---
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;title: &amp;#34;Go Pointer Handling and Query Optimization in Log Management API&amp;#34;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;date: &amp;#34;2024-12-19T00:00:00Z&amp;#34;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;tags: [&amp;#34;go&amp;#34;, &amp;#34;pointers&amp;#34;, &amp;#34;database-optimization&amp;#34;, &amp;#34;api-development&amp;#34;]
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;categories: [&amp;#34;backend-development&amp;#34;, &amp;#34;performance&amp;#34;]
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;---
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;Today&amp;#39;s development focused on clarifying Go pointer concepts and optimizing database queries in the log management API. The main achievement was replacing individual database queries with batch operations to improve performance.
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;## Go Pointer Concepts and DTO Mapping
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;Gained better understanding of pointer handling in Go, particularly for DTO mapping scenarios:
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;-&lt;/span&gt; **Key principle**: Always check the source data type first
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;-&lt;/span&gt; **&lt;span style="color:#e6db74"&gt;`&amp;amp;`&lt;/span&gt;**: Takes the address (gets pointer)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;-&lt;/span&gt; **&lt;span style="color:#e6db74"&gt;`*`&lt;/span&gt;**: Dereferences (gets value)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;-&lt;/span&gt; **Critical consideration**: When source is a pointer, always check for &lt;span style="color:#e6db74"&gt;`nil`&lt;/span&gt; before operations
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;-&lt;/span&gt; **Type conversion with pointers**: Must dereference first, then assign to correct pointer type
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;This understanding is crucial for safe DTO transformations and avoiding runtime panics.
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;## Database Query Optimization
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;### Problem
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;&lt;/span&gt;The original log management GET list API was inefficient - it fetched log IDs first, then performed individual queries for each accounting record.
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;### Solution
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;&lt;/span&gt;Implemented batch querying strategy to reduce database roundtrips:
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;```go
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;func (s *managementLogService) GetManagementLogListByEstateId(estateId int) ([]dto.LogsListResponse, error) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; // TODO: Add pagination and filtering
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; // 1. Get all management logs
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; managementLogs, err := s.managementLogRepo.FindByEstateId(uint(estateId))
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; if err != nil {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; s.logger.Error(&amp;#34;Failed to fetch management logs&amp;#34;, zap.Int(&amp;#34;estateId&amp;#34;, estateId), zap.Error(err))
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; return nil, err
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; if len(managementLogs) == 0 {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; return []dto.LogsListResponse{}, nil
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; // 2. Collect all log IDs
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; logIDs := make([]uint, 0, len(managementLogs))
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; for _, log := range managementLogs {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; logIDs = append(logIDs, log.ID)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; // 3. Batch fetch all related accounting records
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; allAccountings, err := s.accountRepo.FindByLogIDs(logIDs)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; if err != nil {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; s.logger.Error(&amp;#34;Failed to fetch accountings for logs&amp;#34;, zap.Uints(&amp;#34;logIDs&amp;#34;, logIDs), zap.Error(err))
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; return nil, err
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; // 4. Group accounting records by log ID
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; accountingMap := make(map[uint][]property.Accounting)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; for _, acc := range allAccountings {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; if acc.SourceID != nil {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; accountingMap[*acc.SourceID] = append(accountingMap[*acc.SourceID], acc)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; // 5. Compose final results
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; result := make([]dto.LogsListResponse, 0, len(managementLogs))
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; for _, log := range managementLogs {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; // Get corresponding accounting records from map (nil slice is safe if not found)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; logAccountings := accountingMap[log.ID]
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; result = append(result, dto.ToLogListItemDto(&amp;amp;log, logAccountings))
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; return result, nil
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;&lt;strong&gt;Performance benefits&lt;/strong&gt;:&lt;/p&gt;</description><content type="html"><![CDATA[<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-markdown" data-lang="markdown"><span style="display:flex;"><span>---
+</span></span><span style="display:flex;"><span>title: &#34;Go Pointer Handling and Query Optimization in Log Management API&#34;
+</span></span><span style="display:flex;"><span>date: &#34;2024-12-19T00:00:00Z&#34;
+</span></span><span style="display:flex;"><span>tags: [&#34;go&#34;, &#34;pointers&#34;, &#34;database-optimization&#34;, &#34;api-development&#34;]
+</span></span><span style="display:flex;"><span>categories: [&#34;backend-development&#34;, &#34;performance&#34;]
+</span></span><span style="display:flex;"><span>---
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Today&#39;s development focused on clarifying Go pointer concepts and optimizing database queries in the log management API. The main achievement was replacing individual database queries with batch operations to improve performance.
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">## Go Pointer Concepts and DTO Mapping
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>Gained better understanding of pointer handling in Go, particularly for DTO mapping scenarios:
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">-</span> **Key principle**: Always check the source data type first
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">-</span> **<span style="color:#e6db74">`&amp;`</span>**: Takes the address (gets pointer)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">-</span> **<span style="color:#e6db74">`*`</span>**: Dereferences (gets value)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">-</span> **Critical consideration**: When source is a pointer, always check for <span style="color:#e6db74">`nil`</span> before operations
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">-</span> **Type conversion with pointers**: Must dereference first, then assign to correct pointer type
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>This understanding is crucial for safe DTO transformations and avoiding runtime panics.
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">## Database Query Optimization
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">### Problem
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>The original log management GET list API was inefficient - it fetched log IDs first, then performed individual queries for each accounting record.
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">### Solution
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>Implemented batch querying strategy to reduce database roundtrips:
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>```go
+</span></span><span style="display:flex;"><span>func (s *managementLogService) GetManagementLogListByEstateId(estateId int) ([]dto.LogsListResponse, error) {
+</span></span><span style="display:flex;"><span>	// TODO: Add pagination and filtering
+</span></span><span style="display:flex;"><span>	// 1. Get all management logs
+</span></span><span style="display:flex;"><span>	managementLogs, err := s.managementLogRepo.FindByEstateId(uint(estateId))
+</span></span><span style="display:flex;"><span>	if err != nil {
+</span></span><span style="display:flex;"><span>		s.logger.Error(&#34;Failed to fetch management logs&#34;, zap.Int(&#34;estateId&#34;, estateId), zap.Error(err))
+</span></span><span style="display:flex;"><span>		return nil, err
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	if len(managementLogs) == 0 {
+</span></span><span style="display:flex;"><span>		return []dto.LogsListResponse{}, nil
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	// 2. Collect all log IDs
+</span></span><span style="display:flex;"><span>	logIDs := make([]uint, 0, len(managementLogs))
+</span></span><span style="display:flex;"><span>	for _, log := range managementLogs {
+</span></span><span style="display:flex;"><span>		logIDs = append(logIDs, log.ID)
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	// 3. Batch fetch all related accounting records
+</span></span><span style="display:flex;"><span>	allAccountings, err := s.accountRepo.FindByLogIDs(logIDs)
+</span></span><span style="display:flex;"><span>	if err != nil {
+</span></span><span style="display:flex;"><span>		s.logger.Error(&#34;Failed to fetch accountings for logs&#34;, zap.Uints(&#34;logIDs&#34;, logIDs), zap.Error(err))
+</span></span><span style="display:flex;"><span>		return nil, err
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	// 4. Group accounting records by log ID
+</span></span><span style="display:flex;"><span>	accountingMap := make(map[uint][]property.Accounting)
+</span></span><span style="display:flex;"><span>	for _, acc := range allAccountings {
+</span></span><span style="display:flex;"><span>		if acc.SourceID != nil {
+</span></span><span style="display:flex;"><span>			accountingMap[*acc.SourceID] = append(accountingMap[*acc.SourceID], acc)
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	// 5. Compose final results
+</span></span><span style="display:flex;"><span>	result := make([]dto.LogsListResponse, 0, len(managementLogs))
+</span></span><span style="display:flex;"><span>	for _, log := range managementLogs {
+</span></span><span style="display:flex;"><span>		// Get corresponding accounting records from map (nil slice is safe if not found)
+</span></span><span style="display:flex;"><span>		logAccountings := accountingMap[log.ID]
+</span></span><span style="display:flex;"><span>		result = append(result, dto.ToLogListItemDto(&amp;log, logAccountings))
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	return result, nil
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p><strong>Performance benefits</strong>:</p>
+<ul>
+<li>Reduced N+1 query problem to 2 queries total</li>
+<li>Used in-memory grouping instead of multiple database calls</li>
+<li>Maintained data consistency with safe nil pointer handling</li>
+</ul>
+<h2 id="development-environment-improvements">Development Environment Improvements</h2>
+<p>The development workflow has significantly improved after implementing remote development setup:</p>
+<ul>
+<li><strong>Unified environment</strong>: No more device switching concerns</li>
+<li><strong>Database consistency</strong>: Eliminated synchronization issues between local environments</li>
+<li><strong>Reduced context switching</strong>: Focus on development rather than environment management</li>
+</ul>
+<p>Database migration is still managed through Go migrations for version control, though the up/down migration process could be more streamlined.</p>
+<h2 id="next-steps">Next Steps</h2>
+<ol>
+<li><strong>Add pagination support</strong> to the log management API</li>
+<li><strong>Implement filtering mechanisms</strong> for better query flexibility</li>
+<li><strong>Optimize migration workflow</strong> to reduce manual intervention</li>
+<li><strong>Consider caching strategies</strong> for frequently accessed log data</li>
+</ol>
+<p>The current batch query approach provides a solid foundation for these enhancements while maintaining good performance characteristics.</p>
+<pre tabindex="0"><code></code></pre>]]></content></item></channel></rss>
