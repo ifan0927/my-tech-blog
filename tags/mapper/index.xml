@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Mapper on I-Fan's Tech Blog</title><link>https://ifan0927.github.io/my-tech-blog/tags/mapper/</link><description>Recent content in Mapper on I-Fan's Tech Blog</description><generator>Hugo</generator><language>zh-tw</language><lastBuildDate>Wed, 26 Nov 2025 00:00:00 +0000</lastBuildDate><atom:link href="https://ifan0927.github.io/my-tech-blog/tags/mapper/index.xml" rel="self" type="application/rss+xml"/><item><title>API Development Workflow &amp; Electric Reading System Implementation</title><link>https://ifan0927.github.io/my-tech-blog/posts/2025-11-26_note/</link><pubDate>Wed, 26 Nov 2025 00:00:00 +0000</pubDate><guid>https://ifan0927.github.io/my-tech-blog/posts/2025-11-26_note/</guid><description>&lt;p&gt;Today focused on establishing a systematic API development workflow and implementing the electric reading system for property management. The process involved designing DTOs, mappers, and identifying database optimization opportunities.&lt;/p&gt;
+&lt;h2 id="api-development-workflow"&gt;API Development Workflow&lt;/h2&gt;
+&lt;p&gt;Established a standardized approach for basic GET API development, leveraging the existing modal/repository structure and referencing the legacy system for requirements:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;Requirements Analysis&lt;/strong&gt;: Identify response needs and required modal data&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;DTO Design&lt;/strong&gt;: Create response DTOs and corresponding mappers&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Service Layer Design&lt;/strong&gt;: Plan repository calls and implement missing methods if needed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Route Registration&lt;/strong&gt;: Register mappers and configure routes&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;This systematic approach ensures consistency across the codebase while facilitating the migration from the legacy system.&lt;/p&gt;</description></item></channel></rss>

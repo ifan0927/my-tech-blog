@@ -1,4 +1,109 @@
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Posts on I-Fan's Tech Blog</title><link>https://ifan0927.github.io/my-tech-blog/posts/</link><description>Recent content in Posts on I-Fan's Tech Blog</description><generator>Hugo -- gohugo.io</generator><language>zh-tw</language><lastBuildDate>Tue, 25 Nov 2025 00:00:00 +0000</lastBuildDate><atom:link href="https://ifan0927.github.io/my-tech-blog/posts/index.xml" rel="self" type="application/rss+xml"/><item><title>Building n8n Automation Workflow for Hugo Blog Content Generation</title><link>https://ifan0927.github.io/my-tech-blog/posts/2025-11-25_note/</link><pubDate>Tue, 25 Nov 2025 00:00:00 +0000</pubDate><guid>https://ifan0927.github.io/my-tech-blog/posts/2025-11-25_note/</guid><description>&lt;p&gt;Today&amp;rsquo;s focus was on establishing an automated n8n workflow to streamline the daily note generation process for Hugo blog posts. The goal was to eliminate manual steps in transforming raw development notes into polished blog content using AI assistance.&lt;/p&gt;
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Posts on I-Fan's Tech Blog</title><link>https://ifan0927.github.io/my-tech-blog/posts/</link><description>Recent content in Posts on I-Fan's Tech Blog</description><generator>Hugo -- gohugo.io</generator><language>zh-tw</language><lastBuildDate>Wed, 26 Nov 2025 00:00:00 +0000</lastBuildDate><atom:link href="https://ifan0927.github.io/my-tech-blog/posts/index.xml" rel="self" type="application/rss+xml"/><item><title>API Development Workflow &amp; Electric Reading System Implementation</title><link>https://ifan0927.github.io/my-tech-blog/posts/2025-11-26_note/</link><pubDate>Wed, 26 Nov 2025 00:00:00 +0000</pubDate><guid>https://ifan0927.github.io/my-tech-blog/posts/2025-11-26_note/</guid><description>&lt;p&gt;Today focused on establishing a systematic API development workflow and implementing the electric reading system for property management. The process involved designing DTOs, mappers, and identifying database optimization opportunities.&lt;/p&gt;
+&lt;h2 id="api-development-workflow"&gt;API Development Workflow&lt;/h2&gt;
+&lt;p&gt;Established a standardized approach for basic GET API development, leveraging the existing modal/repository structure and referencing the legacy system for requirements:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;Requirements Analysis&lt;/strong&gt;: Identify response needs and required modal data&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;DTO Design&lt;/strong&gt;: Create response DTOs and corresponding mappers&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Service Layer Design&lt;/strong&gt;: Plan repository calls and implement missing methods if needed&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Route Registration&lt;/strong&gt;: Register mappers and configure routes&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;This systematic approach ensures consistency across the codebase while facilitating the migration from the legacy system.&lt;/p&gt;</description><content type="html"><![CDATA[<p>Today focused on establishing a systematic API development workflow and implementing the electric reading system for property management. The process involved designing DTOs, mappers, and identifying database optimization opportunities.</p>
+<h2 id="api-development-workflow">API Development Workflow</h2>
+<p>Established a standardized approach for basic GET API development, leveraging the existing modal/repository structure and referencing the legacy system for requirements:</p>
+<ol>
+<li><strong>Requirements Analysis</strong>: Identify response needs and required modal data</li>
+<li><strong>DTO Design</strong>: Create response DTOs and corresponding mappers</li>
+<li><strong>Service Layer Design</strong>: Plan repository calls and implement missing methods if needed</li>
+<li><strong>Route Registration</strong>: Register mappers and configure routes</li>
+</ol>
+<p>This systematic approach ensures consistency across the codebase while facilitating the migration from the legacy system.</p>
+<h2 id="database-schema-review">Database Schema Review</h2>
+<p>During development, discovered redundant columns in the <code>Electric_reading</code> table that contain empty data after migration. Added this to the TODO list for future table structure optimization, particularly investigating the source and usage of the <code>note</code> field.</p>
+<h2 id="electric-reading-system-implementation">Electric Reading System Implementation</h2>
+<p>Implemented the core electric reading functionality that returns room reading data for a given property, starting from the current year-month and projecting forward.</p>
+<h3 id="data-flow-logic">Data Flow Logic</h3>
+<ul>
+<li>Input: <code>estateId</code> → Extract room ID list</li>
+<li>Fetch active leases for rooms → Get <code>initialReading</code> (empty if no active lease)</li>
+<li>Query electric reading records by room ID</li>
+<li>Format reading dates as <code>YYYY_MM_DD</code></li>
+</ul>
+<h3 id="dto-structure">DTO Structure</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#f92672">package</span> <span style="color:#a6e22e">electric_reading</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">ElectricReadingListDto</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">RoomID</span>         <span style="color:#66d9ef">int</span>       <span style="color:#e6db74">`json:&#34;room_id&#34;`</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">InitialReading</span> <span style="color:#66d9ef">float64</span>   <span style="color:#e6db74">`json:&#34;initial_reading&#34;`</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">EndYear</span>        <span style="color:#66d9ef">int</span>       <span style="color:#e6db74">`json:&#34;end_year&#34;`</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">EndMonth</span>       <span style="color:#66d9ef">int</span>       <span style="color:#e6db74">`json:&#34;end_month&#34;`</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">ReadList</span>       []<span style="color:#a6e22e">Reading</span> <span style="color:#e6db74">`json:&#34;ReadList&#34;`</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Reading</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">ReadingYear</span>  <span style="color:#66d9ef">int</span>     <span style="color:#e6db74">`json:&#34;reading_year&#34;`</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">ReadingMonth</span> <span style="color:#66d9ef">int</span>     <span style="color:#e6db74">`json:&#34;reading_month&#34;`</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">ReadingValue</span> <span style="color:#66d9ef">float64</span> <span style="color:#e6db74">`json:&#34;reading_value&#34;`</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="mapper-implementation">Mapper Implementation</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#f92672">package</span> <span style="color:#a6e22e">electric_reading</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">import</span> (
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">modal</span> <span style="color:#e6db74">&#34;backend/models/property&#34;</span>
+</span></span><span style="display:flex;"><span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">ToElectricReadingListItemDto</span>(
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">electricReading</span> []<span style="color:#a6e22e">modal</span>.<span style="color:#a6e22e">ElectricReading</span>,
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">initialReading</span> <span style="color:#66d9ef">float64</span>,
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">roomId</span> <span style="color:#66d9ef">int</span>,
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">endYear</span> <span style="color:#66d9ef">int</span>,
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">endMonth</span> <span style="color:#66d9ef">int</span>) (<span style="color:#a6e22e">ElectricReadingListDto</span>, <span style="color:#66d9ef">error</span>) {
+</span></span><span style="display:flex;"><span>	
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">ElectricReadingListDto</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">ElectricReadingListDto</span>{
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">RoomID</span>:         <span style="color:#a6e22e">roomId</span>,
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">EndYear</span>:        <span style="color:#a6e22e">endYear</span>,
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">EndMonth</span>:       <span style="color:#a6e22e">endMonth</span>,
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">InitialReading</span>: <span style="color:#a6e22e">initialReading</span>,
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">readingList</span> <span style="color:#f92672">:=</span> make([]<span style="color:#a6e22e">Reading</span>, <span style="color:#ae81ff">0</span>, len(<span style="color:#a6e22e">electricReading</span>))
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">for</span> <span style="color:#a6e22e">_</span>, <span style="color:#a6e22e">reading</span> <span style="color:#f92672">:=</span> <span style="color:#66d9ef">range</span> <span style="color:#a6e22e">electricReading</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">read</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">Reading</span>{
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">ReadingMonth</span>: int(<span style="color:#a6e22e">reading</span>.<span style="color:#a6e22e">ReadingDate</span>.<span style="color:#a6e22e">Month</span>()),
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">ReadingYear</span>:  <span style="color:#a6e22e">reading</span>.<span style="color:#a6e22e">ReadingDate</span>.<span style="color:#a6e22e">Year</span>(),
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">ReadingValue</span>: <span style="color:#a6e22e">reading</span>.<span style="color:#a6e22e">ReadingValue</span>,
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">readingList</span> = append(<span style="color:#a6e22e">readingList</span>, <span style="color:#a6e22e">read</span>)
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">ElectricReadingListDto</span>.<span style="color:#a6e22e">ReadList</span> = <span style="color:#a6e22e">readingList</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">ElectricReadingListDto</span>, <span style="color:#66d9ef">nil</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="quick-reference-notes">Quick Reference Notes</h2>
+<p>Compiled essential Go conversion and query patterns for REST API development:</p>
+<p><strong>Data Conversion:</strong></p>
+<ul>
+<li>Number to string: <code>strconv.Itoa(n)</code></li>
+<li>Unicode to character: <code>string(rune(n))</code></li>
+<li>Chinese character count: <code>len([]rune(str))</code></li>
+<li>Date calculation: <code>time.AddDate(0, -5, 0)</code></li>
+</ul>
+<p><strong>API Parameter Binding:</strong></p>
+<ul>
+<li>Path parameters: <code>c.ShouldBindUri()</code></li>
+<li>Query parameters: <code>c.ShouldBindQuery()</code></li>
+<li>Default values: <code>c.DefaultQuery(&quot;key&quot;, &quot;default&quot;)</code></li>
+</ul>
+<p><strong>Database Filtering:</strong></p>
+<ul>
+<li>Time range queries: <code>WHERE date &gt;= ? AND date &lt; ?</code></li>
+</ul>
+<h2 id="next-steps">Next Steps</h2>
+<ul>
+<li>Review and optimize the <code>Electric_reading</code> table structure</li>
+<li>Investigate the <code>note</code> field data source and usage</li>
+<li>Continue implementing the remaining API endpoints following the established workflow</li>
+</ul>
+]]></content></item><item><title>Building n8n Automation Workflow for Hugo Blog Content Generation</title><link>https://ifan0927.github.io/my-tech-blog/posts/2025-11-25_note/</link><pubDate>Tue, 25 Nov 2025 00:00:00 +0000</pubDate><guid>https://ifan0927.github.io/my-tech-blog/posts/2025-11-25_note/</guid><description>&lt;p&gt;Today&amp;rsquo;s focus was on establishing an automated n8n workflow to streamline the daily note generation process for Hugo blog posts. The goal was to eliminate manual steps in transforming raw development notes into polished blog content using AI assistance.&lt;/p&gt;
 &lt;h2 id="problem-statement"&gt;Problem Statement&lt;/h2&gt;
 &lt;p&gt;The current workflow involves several manual steps that create friction in the content creation process:&lt;/p&gt;
 &lt;ol&gt;
