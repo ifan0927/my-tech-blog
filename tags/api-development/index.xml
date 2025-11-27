@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Api-Development on I-Fan's Tech Blog</title><link>https://ifan0927.github.io/my-tech-blog/tags/api-development/</link><description>Recent content in Api-Development on I-Fan's Tech Blog</description><generator>Hugo</generator><language>zh-tw</language><lastBuildDate>Tue, 25 Nov 2025 00:00:00 +0000</lastBuildDate><atom:link href="https://ifan0927.github.io/my-tech-blog/tags/api-development/index.xml" rel="self" type="application/rss+xml"/><item><title>Go Pointer Handling and Query Optimization in Log Management API</title><link>https://ifan0927.github.io/my-tech-blog/posts/2024-11-25_note/</link><pubDate>Tue, 25 Nov 2025 00:00:00 +0000</pubDate><guid>https://ifan0927.github.io/my-tech-blog/posts/2024-11-25_note/</guid><description>&lt;p&gt;Today&amp;rsquo;s development focused on clarifying Go pointer concepts and optimizing database queries in the log management API. The main achievement was replacing individual database queries with batch operations to improve performance.&lt;/p&gt;
+&lt;h2 id="go-pointer-concepts-and-dto-mapping"&gt;Go Pointer Concepts and DTO Mapping&lt;/h2&gt;
+&lt;p&gt;Gained better understanding of pointer handling in Go, particularly for DTO mapping scenarios:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Key principle&lt;/strong&gt;: Always check the source data type first&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;&amp;amp;&lt;/code&gt;&lt;/strong&gt;: Takes the address (gets pointer)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;*&lt;/code&gt;&lt;/strong&gt;: Dereferences (gets value)&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Critical consideration&lt;/strong&gt;: When source is a pointer, always check for &lt;code&gt;nil&lt;/code&gt; before operations&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Type conversion with pointers&lt;/strong&gt;: Must dereference first, then assign to correct pointer type&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;This understanding is crucial for safe DTO transformations and avoiding runtime panics.&lt;/p&gt;</description></item></channel></rss>
