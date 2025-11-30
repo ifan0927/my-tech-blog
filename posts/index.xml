@@ -1,4 +1,103 @@
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Posts on I-Fan's Tech Blog</title><link>https://ifan0927.github.io/my-tech-blog/posts/</link><description>Recent content in Posts on I-Fan's Tech Blog</description><generator>Hugo -- gohugo.io</generator><language>zh-tw</language><lastBuildDate>Wed, 26 Nov 2025 00:00:00 +0000</lastBuildDate><atom:link href="https://ifan0927.github.io/my-tech-blog/posts/index.xml" rel="self" type="application/rss+xml"/><item><title>API Development Workflow &amp; Electric Reading System Implementation</title><link>https://ifan0927.github.io/my-tech-blog/posts/2025-11-26_note/</link><pubDate>Wed, 26 Nov 2025 00:00:00 +0000</pubDate><guid>https://ifan0927.github.io/my-tech-blog/posts/2025-11-26_note/</guid><description>&lt;p&gt;Today focused on establishing a systematic API development workflow and implementing the electric reading system for property management. The process involved designing DTOs, mappers, and identifying database optimization opportunities.&lt;/p&gt;
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Posts on I-Fan's Tech Blog</title><link>https://ifan0927.github.io/my-tech-blog/posts/</link><description>Recent content in Posts on I-Fan's Tech Blog</description><generator>Hugo -- gohugo.io</generator><language>zh-tw</language><lastBuildDate>Sun, 30 Nov 2025 00:00:00 +0000</lastBuildDate><atom:link href="https://ifan0927.github.io/my-tech-blog/posts/index.xml" rel="self" type="application/rss+xml"/><item><title>File Storage Service &amp; Architecture Refactoring for Property Management System</title><link>https://ifan0927.github.io/my-tech-blog/posts/2025-11-30_note/</link><pubDate>Sun, 30 Nov 2025 00:00:00 +0000</pubDate><guid>https://ifan0927.github.io/my-tech-blog/posts/2025-11-30_note/</guid><description>&lt;p&gt;Today&amp;rsquo;s development focused on adding file handling services to the property management system while implementing architectural improvements for better maintainability and testability.&lt;/p&gt;
+&lt;h2 id="file-storage-service-implementation"&gt;File Storage Service Implementation&lt;/h2&gt;
+&lt;p&gt;Given the current project complexity, I decided to implement local file storage initially while keeping the architecture flexible for future cloud storage migration. The key was designing an abstracted interface that allows seamless provider switching.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#f92672"&gt;package&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;storage&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#f92672"&gt;import&lt;/span&gt; &lt;span style="color:#e6db74"&gt;&amp;#34;mime/multipart&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;// FileStorage defines the interface for file storage operations.&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;// Any storage provider (local disk, S3, GCS, etc.) should implement this interface.&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;type&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;FileStorage&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;interface&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#75715e"&gt;// UploadFile saves a file to the storage.&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#75715e"&gt;// It takes the file header from a multipart form, the desired destination path within the storage,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#75715e"&gt;// and returns the full path where the file was stored, or an error.&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;UploadFile&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;file&lt;/span&gt; &lt;span style="color:#f92672"&gt;*&lt;/span&gt;&lt;span style="color:#a6e22e"&gt;multipart&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;FileHeader&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;destPath&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;string&lt;/span&gt;) (&lt;span style="color:#66d9ef"&gt;string&lt;/span&gt;, &lt;span style="color:#66d9ef"&gt;error&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#75715e"&gt;// GetFile retrieves a file from the storage.&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#75715e"&gt;// It takes the full storage path of the file and returns the file content as bytes, or an error.&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#75715e"&gt;// For web services, it might return a direct URL or handle streaming. For now, it returns bytes.&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;GetFile&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;path&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;string&lt;/span&gt;) ([]&lt;span style="color:#66d9ef"&gt;byte&lt;/span&gt;, &lt;span style="color:#66d9ef"&gt;error&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#75715e"&gt;// DeleteFile removes a file from the storage.&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#75715e"&gt;// It takes the full storage path of the file and returns an error if deletion fails.&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;DeleteFile&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;path&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;string&lt;/span&gt;) &lt;span style="color:#66d9ef"&gt;error&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#75715e"&gt;// GetFileTemporaryURL generates a temporary, pre-signed URL for accessing a file.&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#75715e"&gt;// This is especially useful for cloud storage but can be a direct path for local storage.&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;GetFileTemporaryURL&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;path&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;string&lt;/span&gt;) (&lt;span style="color:#66d9ef"&gt;string&lt;/span&gt;, &lt;span style="color:#66d9ef"&gt;error&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;This approach allows dependency injection during Gin startup, making it easy to swap LocalStorage for CloudStorage when migrating to services like AWS S3 or GCP Storage.&lt;/p&gt;</description><content type="html"><![CDATA[<p>Today&rsquo;s development focused on adding file handling services to the property management system while implementing architectural improvements for better maintainability and testability.</p>
+<h2 id="file-storage-service-implementation">File Storage Service Implementation</h2>
+<p>Given the current project complexity, I decided to implement local file storage initially while keeping the architecture flexible for future cloud storage migration. The key was designing an abstracted interface that allows seamless provider switching.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#f92672">package</span> <span style="color:#a6e22e">storage</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">import</span> <span style="color:#e6db74">&#34;mime/multipart&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// FileStorage defines the interface for file storage operations.</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Any storage provider (local disk, S3, GCS, etc.) should implement this interface.</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">FileStorage</span> <span style="color:#66d9ef">interface</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// UploadFile saves a file to the storage.</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// It takes the file header from a multipart form, the desired destination path within the storage,</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// and returns the full path where the file was stored, or an error.</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">UploadFile</span>(<span style="color:#a6e22e">file</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">multipart</span>.<span style="color:#a6e22e">FileHeader</span>, <span style="color:#a6e22e">destPath</span> <span style="color:#66d9ef">string</span>) (<span style="color:#66d9ef">string</span>, <span style="color:#66d9ef">error</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// GetFile retrieves a file from the storage.</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// It takes the full storage path of the file and returns the file content as bytes, or an error.</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// For web services, it might return a direct URL or handle streaming. For now, it returns bytes.</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">GetFile</span>(<span style="color:#a6e22e">path</span> <span style="color:#66d9ef">string</span>) ([]<span style="color:#66d9ef">byte</span>, <span style="color:#66d9ef">error</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// DeleteFile removes a file from the storage.</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// It takes the full storage path of the file and returns an error if deletion fails.</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">DeleteFile</span>(<span style="color:#a6e22e">path</span> <span style="color:#66d9ef">string</span>) <span style="color:#66d9ef">error</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// GetFileTemporaryURL generates a temporary, pre-signed URL for accessing a file.</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// This is especially useful for cloud storage but can be a direct path for local storage.</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">GetFileTemporaryURL</span>(<span style="color:#a6e22e">path</span> <span style="color:#66d9ef">string</span>) (<span style="color:#66d9ef">string</span>, <span style="color:#66d9ef">error</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>This approach allows dependency injection during Gin startup, making it easy to swap LocalStorage for CloudStorage when migrating to services like AWS S3 or GCP Storage.</p>
+<h2 id="architecture-refactoring-insights">Architecture Refactoring Insights</h2>
+<h3 id="service-boundaries-adjustment">Service Boundaries Adjustment</h3>
+<p>Initially, I planned to map each repository to a separate service, but this proved overly complex for a property management system. The business logic naturally aggregates around properties - estate listings need room, lease, and tenant data together. Therefore, allowing <code>estateService</code> to access multiple repositories makes more sense than strict separation.</p>
+<p>However, the file system remains completely independent business-wise, so it deserves its own dedicated service to maintain proper separation of concerns.</p>
+<h3 id="repository-interface-design">Repository Interface Design</h3>
+<p>With growing complexity, I introduced unit testing and dependency injection patterns. This required defining repository interfaces to enable proper mocking:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#f92672">package</span> <span style="color:#a6e22e">property</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">import</span> <span style="color:#e6db74">&#34;backend/models/property&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// IEstateRepository defines the interface for EstateRepository</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Using &#34;I&#34; prefix to distinguish from Service interfaces</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">IEstateRepository</span> <span style="color:#66d9ef">interface</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">FindAll</span>() ([]<span style="color:#a6e22e">property</span>.<span style="color:#a6e22e">Estate</span>, <span style="color:#66d9ef">error</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">FindByID</span>(<span style="color:#a6e22e">id</span> <span style="color:#66d9ef">uint</span>) (<span style="color:#f92672">*</span><span style="color:#a6e22e">property</span>.<span style="color:#a6e22e">Estate</span>, <span style="color:#66d9ef">error</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">Create</span>(<span style="color:#a6e22e">estate</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">property</span>.<span style="color:#a6e22e">Estate</span>) (<span style="color:#f92672">*</span><span style="color:#a6e22e">property</span>.<span style="color:#a6e22e">Estate</span>, <span style="color:#66d9ef">error</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">Update</span>(<span style="color:#a6e22e">estate</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">property</span>.<span style="color:#a6e22e">Estate</span>) (<span style="color:#f92672">*</span><span style="color:#a6e22e">property</span>.<span style="color:#a6e22e">Estate</span>, <span style="color:#66d9ef">error</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">Delete</span>(<span style="color:#a6e22e">id</span> <span style="color:#66d9ef">uint</span>) <span style="color:#66d9ef">error</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// IRoomRepository defines the interface for RoomRepository</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">IRoomRepository</span> <span style="color:#66d9ef">interface</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">CountRoomNumber</span>(<span style="color:#a6e22e">estateID</span> <span style="color:#66d9ef">uint</span>) (<span style="color:#66d9ef">int</span>, <span style="color:#66d9ef">error</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">CountOccupiedByEstateID</span>(<span style="color:#a6e22e">estateID</span> <span style="color:#66d9ef">int</span>) (<span style="color:#66d9ef">int</span>, <span style="color:#66d9ef">error</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">FindAllWithDetailsByEstateID</span>(<span style="color:#a6e22e">estateID</span> <span style="color:#66d9ef">int</span>) ([]<span style="color:#a6e22e">property</span>.<span style="color:#a6e22e">Room</span>, <span style="color:#66d9ef">error</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">FindAllRoomByEstateId</span>(<span style="color:#a6e22e">estateID</span> <span style="color:#66d9ef">int</span>) ([]<span style="color:#a6e22e">property</span>.<span style="color:#a6e22e">Room</span>, <span style="color:#66d9ef">error</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// Additional interfaces follow similar pattern...</span>
+</span></span></code></pre></div><h2 id="bootstrap-layer-introduction">Bootstrap Layer Introduction</h2>
+<p>The router layer was becoming unwieldy with all the initialization logic. I extracted this to <code>backend/bootstrap/bootstrap.go</code>, creating an internal container that handles dependency injection during Gin startup. This provides better separation of concerns and easier maintenance.</p>
+<h2 id="testing--code-quality">Testing &amp; Code Quality</h2>
+<p>Introduced unit testing for the service layer and golint to improve code quality and maintainability. The interface-based approach significantly simplifies mocking and testing scenarios.</p>
+<h2 id="completed-features">Completed Features</h2>
+<p>Successfully implemented full CRUD operations for the estate table, providing a solid foundation for the property management system&rsquo;s core functionality.</p>
+<h2 id="next-steps">Next Steps</h2>
+<ul>
+<li>Implement cloud storage providers (AWS S3, GCP Storage) using the established interface</li>
+<li>Expand unit test coverage across all service layers</li>
+<li>Continue refining the bootstrap container for better dependency management</li>
+<li>Add integration tests for the complete file upload workflow</li>
+</ul>
+]]></content></item><item><title>API Development Workflow &amp; Electric Reading System Implementation</title><link>https://ifan0927.github.io/my-tech-blog/posts/2025-11-26_note/</link><pubDate>Wed, 26 Nov 2025 00:00:00 +0000</pubDate><guid>https://ifan0927.github.io/my-tech-blog/posts/2025-11-26_note/</guid><description>&lt;p&gt;Today focused on establishing a systematic API development workflow and implementing the electric reading system for property management. The process involved designing DTOs, mappers, and identifying database optimization opportunities.&lt;/p&gt;
 &lt;h2 id="api-development-workflow"&gt;API Development Workflow&lt;/h2&gt;
 &lt;p&gt;Established a standardized approach for basic GET API development, leveraging the existing modal/repository structure and referencing the legacy system for requirements:&lt;/p&gt;
 &lt;ol&gt;
