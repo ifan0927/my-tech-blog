@@ -1,4 +1,111 @@
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Posts on I-Fan's Tech Blog</title><link>https://ifan0927.github.io/my-tech-blog/posts/</link><description>Recent content in Posts on I-Fan's Tech Blog</description><generator>Hugo -- gohugo.io</generator><language>zh-tw</language><lastBuildDate>Sun, 30 Nov 2025 00:00:00 +0000</lastBuildDate><atom:link href="https://ifan0927.github.io/my-tech-blog/posts/index.xml" rel="self" type="application/rss+xml"/><item><title>File Storage Service &amp; Architecture Refactoring for Property Management System</title><link>https://ifan0927.github.io/my-tech-blog/posts/2025-11-30_note/</link><pubDate>Sun, 30 Nov 2025 00:00:00 +0000</pubDate><guid>https://ifan0927.github.io/my-tech-blog/posts/2025-11-30_note/</guid><description>&lt;p&gt;Today&amp;rsquo;s development focused on adding file handling services to the property management system while implementing architectural improvements for better maintainability and testability.&lt;/p&gt;
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Posts on I-Fan's Tech Blog</title><link>https://ifan0927.github.io/my-tech-blog/posts/</link><description>Recent content in Posts on I-Fan's Tech Blog</description><generator>Hugo -- gohugo.io</generator><language>zh-tw</language><lastBuildDate>Mon, 15 Dec 2025 00:00:00 +0000</lastBuildDate><atom:link href="https://ifan0927.github.io/my-tech-blog/posts/index.xml" rel="self" type="application/rss+xml"/><item><title>Lease Lifecycle Management: CRUD Design for Property Management System</title><link>https://ifan0927.github.io/my-tech-blog/posts/2025-12-15_note/</link><pubDate>Mon, 15 Dec 2025 00:00:00 +0000</pubDate><guid>https://ifan0927.github.io/my-tech-blog/posts/2025-12-15_note/</guid><description>&lt;p&gt;Today I focused on designing the lease lifecycle management system for a property management application. The main challenge was architecting the complete CRUD operations for lease creation, modification, and termination, with particular attention to the integration between lease management and the accounting system.&lt;/p&gt;
+&lt;h2 id="lease-creation-beyond-simple-database-insertion"&gt;Lease Creation: Beyond Simple Database Insertion&lt;/h2&gt;
+&lt;p&gt;Creating a lease involves much more than just inserting a record into the &lt;code&gt;leases&lt;/code&gt; table. The process requires careful orchestration of multiple operations:&lt;/p&gt;</description><content type="html"><![CDATA[<p>Today I focused on designing the lease lifecycle management system for a property management application. The main challenge was architecting the complete CRUD operations for lease creation, modification, and termination, with particular attention to the integration between lease management and the accounting system.</p>
+<h2 id="lease-creation-beyond-simple-database-insertion">Lease Creation: Beyond Simple Database Insertion</h2>
+<p>Creating a lease involves much more than just inserting a record into the <code>leases</code> table. The process requires careful orchestration of multiple operations:</p>
+<h3 id="pre-validation-requirements">Pre-validation Requirements</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Essential checks before lease creation</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">s</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">LeaseService</span>) <span style="color:#a6e22e">CreateLease</span>(<span style="color:#a6e22e">ctx</span> <span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">Context</span>, <span style="color:#a6e22e">req</span> <span style="color:#a6e22e">CreateLeaseRequest</span>) <span style="color:#66d9ef">error</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">tx</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">db</span>.<span style="color:#a6e22e">BeginTx</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#66d9ef">nil</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">err</span>
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">defer</span> <span style="color:#a6e22e">tx</span>.<span style="color:#a6e22e">Rollback</span>()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Lock room record to prevent race conditions</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">room</span> <span style="color:#a6e22e">Room</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">err</span> = <span style="color:#a6e22e">tx</span>.<span style="color:#a6e22e">QueryRowContext</span>(<span style="color:#a6e22e">ctx</span>, 
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#34;SELECT id, is_available FROM rooms WHERE id = ? FOR UPDATE&#34;</span>, 
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">req</span>.<span style="color:#a6e22e">RoomID</span>).<span style="color:#a6e22e">Scan</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">room</span>.<span style="color:#a6e22e">ID</span>, <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">room</span>.<span style="color:#a6e22e">IsAvailable</span>)
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> !<span style="color:#a6e22e">room</span>.<span style="color:#a6e22e">IsAvailable</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">ErrRoomNotAvailable</span>
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Validate tenants exist</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// ... tenant validation logic</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="bill-generation-strategy">Bill Generation Strategy</h3>
+<p>The core principle is <strong>predictable accounting</strong>. However, different bill types require different approaches:</p>
+<ul>
+<li>
+<p><strong>Rent Bills</strong>: Since rental amounts and cycles are fixed, I generate <strong>all future rent bills</strong> immediately upon lease creation with <code>status = 'pending'</code>. This makes future queries and collections straightforward.</p>
+</li>
+<li>
+<p><strong>Electricity Bills</strong>: Unlike rent bills, electricity billing cycles are determined by actual <strong>meter reading dates</strong>, not calendar dates. Therefore, <strong>no electricity bills are pre-generated</strong> during lease creation. Instead, I store the <code>initial_electric_reading</code> in the lease record as the baseline for future calculations.</p>
+</li>
+</ul>
+<h2 id="lease-modification-keeping-it-simple">Lease Modification: Keeping It Simple</h2>
+<p>Lease updates present a critical design decision: what changes should be allowed?</p>
+<h3 id="core-vs-non-core-changes">Core vs Non-Core Changes</h3>
+<p><strong>Core changes</strong> (room changes, rent adjustments, lease period modifications) would severely impact pre-generated bills and create complex reconciliation scenarios. The solution: <strong>treat core changes as &ldquo;terminate old lease + create new lease&rdquo;</strong>.</p>
+<p><strong>Non-core changes</strong> (contact updates, notes, secondary tenant modifications) can be safely handled through direct updates:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">s</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">LeaseService</span>) <span style="color:#a6e22e">UpdateLease</span>(<span style="color:#a6e22e">ctx</span> <span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">Context</span>, <span style="color:#a6e22e">leaseID</span> <span style="color:#66d9ef">int</span>, <span style="color:#a6e22e">req</span> <span style="color:#a6e22e">UpdateLeaseRequest</span>) <span style="color:#66d9ef">error</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">tx</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">db</span>.<span style="color:#a6e22e">BeginTx</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#66d9ef">nil</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">err</span>
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">defer</span> <span style="color:#a6e22e">tx</span>.<span style="color:#a6e22e">Rollback</span>()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Lock lease record</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">_</span>, <span style="color:#a6e22e">err</span> = <span style="color:#a6e22e">tx</span>.<span style="color:#a6e22e">ExecContext</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#e6db74">&#34;SELECT id FROM leases WHERE id = ? FOR UPDATE&#34;</span>, <span style="color:#a6e22e">leaseID</span>)
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Handle tenant relationship changes</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> len(<span style="color:#a6e22e">req</span>.<span style="color:#a6e22e">TenantIDs</span>) &gt; <span style="color:#ae81ff">0</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// Compare existing vs new tenant lists</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// Delete removed associations, insert new ones</span>
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Update simple fields</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">_</span>, <span style="color:#a6e22e">err</span> = <span style="color:#a6e22e">tx</span>.<span style="color:#a6e22e">ExecContext</span>(<span style="color:#a6e22e">ctx</span>, 
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#34;UPDATE leases SET notes = ?, updated_at = NOW() WHERE id = ?&#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">req</span>.<span style="color:#a6e22e">Notes</span>, <span style="color:#a6e22e">leaseID</span>)
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">tx</span>.<span style="color:#a6e22e">Commit</span>()
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="lease-termination-the-complex-settlement-process">Lease Termination: The Complex Settlement Process</h2>
+<p>Termination is the most sophisticated operation in the lease lifecycle, involving complete financial settlement.</p>
+<h3 id="event-driven-final-billing">Event-Driven Final Billing</h3>
+<p>The <strong>final meter reading</strong> serves as the critical trigger event:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">s</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">LeaseService</span>) <span style="color:#a6e22e">TerminateLease</span>(<span style="color:#a6e22e">ctx</span> <span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">Context</span>, <span style="color:#a6e22e">req</span> <span style="color:#a6e22e">TerminateLeaseRequest</span>) <span style="color:#66d9ef">error</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">tx</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">db</span>.<span style="color:#a6e22e">BeginTx</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#66d9ef">nil</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">err</span>
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">defer</span> <span style="color:#a6e22e">tx</span>.<span style="color:#a6e22e">Rollback</span>()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Generate final electricity bill based on final reading</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">finalBill</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">generateFinalElectricityBill</span>(<span style="color:#a6e22e">req</span>.<span style="color:#a6e22e">LeaseID</span>, <span style="color:#a6e22e">req</span>.<span style="color:#a6e22e">FinalElectricReading</span>)
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// Void all future pending rent bills</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">_</span>, <span style="color:#a6e22e">err</span> = <span style="color:#a6e22e">tx</span>.<span style="color:#a6e22e">ExecContext</span>(<span style="color:#a6e22e">ctx</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#e6db74">&#34;UPDATE rent_bills SET status = &#39;void&#39; WHERE lease_id = ? AND status = &#39;pending&#39; AND due_date &gt; ?&#34;</span>,
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">req</span>.<span style="color:#a6e22e">LeaseID</span>, <span style="color:#a6e22e">req</span>.<span style="color:#a6e22e">TerminationDate</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="multi-entry-accounting-records">Multi-Entry Accounting Records</h3>
+<p>Settlement involves multiple financial transactions with different natures:</p>
+<ul>
+<li>Deposit refund (expense)</li>
+<li>Electricity bill collection (income)</li>
+<li>Damage compensation (income)</li>
+</ul>
+<p>Each transaction type requires <strong>separate accounting entries</strong> to maintain clear financial records:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-go" data-lang="go"><span style="display:flex;"><span><span style="color:#75715e">// Multiple accounting entries for different transaction types</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">accountingEntries</span> <span style="color:#f92672">:=</span> []<span style="color:#a6e22e">AccountingEntry</span>{
+</span></span><span style="display:flex;"><span>    {<span style="color:#a6e22e">Type</span>: <span style="color:#e6db74">&#34;expense&#34;</span>, <span style="color:#a6e22e">Amount</span>: <span style="color:#a6e22e">depositRefund</span>, <span style="color:#a6e22e">Description</span>: <span style="color:#e6db74">&#34;Deposit refund&#34;</span>},
+</span></span><span style="display:flex;"><span>    {<span style="color:#a6e22e">Type</span>: <span style="color:#e6db74">&#34;income&#34;</span>, <span style="color:#a6e22e">Amount</span>: <span style="color:#a6e22e">finalElectricityBill</span>, <span style="color:#a6e22e">Description</span>: <span style="color:#e6db74">&#34;Final electricity charge&#34;</span>},
+</span></span><span style="display:flex;"><span>    {<span style="color:#a6e22e">Type</span>: <span style="color:#e6db74">&#34;income&#34;</span>, <span style="color:#a6e22e">Amount</span>: <span style="color:#a6e22e">damageCompensation</span>, <span style="color:#a6e22e">Description</span>: <span style="color:#e6db74">&#34;Damage compensation&#34;</span>},
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="challenges--solutions">Challenges &amp; Solutions</h2>
+<p><strong>Challenge</strong>: Race conditions during lease creation when multiple users attempt to rent the same room.
+<strong>Solution</strong>: Implemented <code>SELECT ... FOR UPDATE</code> to lock room records during the transaction.</p>
+<p><strong>Challenge</strong>: Handling different billing cycles for rent vs utilities.
+<strong>Solution</strong>: Adopted an event-driven approach where rent bills are pre-generated but electricity bills are created based on actual meter reading events.</p>
+<p><strong>Challenge</strong>: Managing complex termination settlements with multiple financial components.
+<strong>Solution</strong>: Designed a comprehensive transaction that handles bill voidance, final bill generation, settlement calculation, and multi-entry accounting records atomically.</p>
+<h2 id="next-steps">Next Steps</h2>
+<p>The lease lifecycle design provides a solid foundation for the property management system. The next phase will focus on implementing the actual service layer with proper error handling, testing the transaction boundaries under concurrent access, and integrating with the front-end lease management interface.</p>
+]]></content></item><item><title>File Storage Service &amp; Architecture Refactoring for Property Management System</title><link>https://ifan0927.github.io/my-tech-blog/posts/2025-11-30_note/</link><pubDate>Sun, 30 Nov 2025 00:00:00 +0000</pubDate><guid>https://ifan0927.github.io/my-tech-blog/posts/2025-11-30_note/</guid><description>&lt;p&gt;Today&amp;rsquo;s development focused on adding file handling services to the property management system while implementing architectural improvements for better maintainability and testability.&lt;/p&gt;
 &lt;h2 id="file-storage-service-implementation"&gt;File Storage Service Implementation&lt;/h2&gt;
 &lt;p&gt;Given the current project complexity, I decided to implement local file storage initially while keeping the architecture flexible for future cloud storage migration. The key was designing an abstracted interface that allows seamless provider switching.&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#f92672"&gt;package&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;storage&lt;/span&gt;
